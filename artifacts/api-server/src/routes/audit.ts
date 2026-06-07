@@ -3,7 +3,8 @@ import { desc } from "drizzle-orm";
 import { db, auditLogsTable } from "@workspace/db";
 import {
   ListAuditLogsQueryParams,
-import { ListAuditLogsResponse } from "@workspace/api-zod";
+  ListAuditLogsResponse,
+} from "@workspace/api-zod";
 import { serializeList } from "../lib/serialize";
 import { requireAuth } from "../middlewares/auth";
 
