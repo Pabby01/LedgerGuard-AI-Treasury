@@ -12,6 +12,7 @@ import { Connection, PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { auditLogsTable } from "@workspace/db";
 import { serializeList, serializeDates } from "../lib/serialize";
 import { requireAuth } from "../middlewares/auth";
+import { logger } from "../lib/logger";
 
 const router = Router();
 
@@ -32,26 +33,34 @@ router.post("/wallets", async (req, res): Promise<void> => {
     return;
   }
 
-  const existing = await db
-    .select()
-    .from(walletsTable)
-    .where(eq(walletsTable.address, parsed.data.address))
-    .limit(1);
+  try {
+    const result = await db.transaction(async (tx) => {
+      const existing = await tx
+        .select()
+        .from(walletsTable)
+        .where(eq(walletsTable.address, parsed.data.address))
+        .limit(1);
 
-  if (existing.length > 0) {
-    res.status(201).json(existing[0]);
-    return;
+      if (existing.length > 0) {
+        return { status: 200, wallet: existing[0] };
+      }
+
+      const [wallet] = await tx.insert(walletsTable).values(parsed.data).returning();
+
+      await tx.insert(auditLogsTable).values({
+        event: "WALLET_CONNECTED",
+        metadata: JSON.stringify({ address: wallet.address, network: wallet.network }),
+        walletAddress: wallet.address,
+      });
+
+      return { status: 201, wallet };
+    });
+
+    res.status(result.status).json(result.wallet);
+  } catch (err) {
+    logger.error({ err }, "Failed to connect wallet");
+    res.status(500).json({ error: "Internal server error" });
   }
-
-  const [wallet] = await db.insert(walletsTable).values(parsed.data).returning();
-
-  await db.insert(auditLogsTable).values({
-    event: "WALLET_CONNECTED",
-    metadata: JSON.stringify({ address: wallet.address, network: wallet.network }),
-    walletAddress: wallet.address,
-  });
-
-  res.status(201).json(wallet);
 });
 
 router.delete("/wallets/:id", async (req, res): Promise<void> => {
@@ -62,23 +71,36 @@ router.delete("/wallets/:id", async (req, res): Promise<void> => {
     return;
   }
 
-  const [wallet] = await db
-    .delete(walletsTable)
-    .where(eq(walletsTable.id, params.data.id))
-    .returning();
+  try {
+    const wallet = await db.transaction(async (tx) => {
+      const [deletedWallet] = await tx
+        .delete(walletsTable)
+        .where(eq(walletsTable.id, params.data.id))
+        .returning();
 
-  if (!wallet) {
-    res.status(404).json({ error: "Wallet not found" });
-    return;
+      if (!deletedWallet) {
+        return null;
+      }
+
+      await tx.insert(auditLogsTable).values({
+        event: "WALLET_DISCONNECTED",
+        metadata: JSON.stringify({ address: deletedWallet.address }),
+        walletAddress: deletedWallet.address,
+      });
+
+      return deletedWallet;
+    });
+
+    if (!wallet) {
+      res.status(404).json({ error: "Wallet not found" });
+      return;
+    }
+
+    res.sendStatus(204);
+  } catch (err) {
+    logger.error({ err }, "Failed to disconnect wallet");
+    res.status(500).json({ error: "Internal server error" });
   }
-
-  await db.insert(auditLogsTable).values({
-    event: "WALLET_DISCONNECTED",
-    metadata: JSON.stringify({ address: wallet.address }),
-    walletAddress: wallet.address,
-  });
-
-  res.sendStatus(204);
 });
 
 router.get("/wallets/:id/balance", async (req, res): Promise<void> => {

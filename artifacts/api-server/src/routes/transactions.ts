@@ -22,6 +22,7 @@ import { Connection, PublicKey, SystemProgram, Transaction, LAMPORTS_PER_SOL, se
 import { assessRisk } from "../lib/risk-engine";
 import { serializeList, serializeDates } from "../lib/serialize";
 import { requireAuth } from "../middlewares/auth";
+import { logger } from "../lib/logger";
 
 const router = Router();
 
@@ -51,37 +52,46 @@ router.post("/transactions", async (req, res): Promise<void> => {
     return;
   }
 
-  const risk = await assessRisk(
-    parsed.data.amount,
-    parsed.data.recipient,
-    parsed.data.token,
-    parsed.data.fromWalletAddress ?? undefined
-  );
+  try {
+    const risk = await assessRisk(
+      parsed.data.amount,
+      parsed.data.recipient,
+      parsed.data.token,
+      parsed.data.fromWalletAddress ?? undefined
+    );
 
-  const [txn] = await db
-    .insert(transactionsTable)
-    .values({
-      ...parsed.data,
-      riskScore: risk.riskScore,
-      riskLevel: risk.level,
-      status: "pending",
-    })
-    .returning();
+    const txn = await db.transaction(async (tx) => {
+      const [newTxn] = await tx
+        .insert(transactionsTable)
+        .values({
+          ...parsed.data,
+          riskScore: risk.riskScore,
+          riskLevel: risk.level,
+          status: "pending",
+        })
+        .returning();
 
-  await db.insert(auditLogsTable).values({
-    event: "TRANSACTION_CREATED",
-    metadata: JSON.stringify({
-      id: txn.id,
-      amount: txn.amount,
-      token: txn.token,
-      recipient: txn.recipient,
-      riskScore: risk.riskScore,
-      riskLevel: risk.level,
-    }),
-    walletAddress: txn.fromWalletAddress ?? undefined,
-  });
+      await tx.insert(auditLogsTable).values({
+        event: "TRANSACTION_CREATED",
+        metadata: JSON.stringify({
+          id: newTxn.id,
+          amount: newTxn.amount,
+          token: newTxn.token,
+          recipient: newTxn.recipient,
+          riskScore: risk.riskScore,
+          riskLevel: risk.level,
+        }),
+        walletAddress: newTxn.fromWalletAddress ?? undefined,
+      });
 
-  res.status(201).json(GetTransactionResponse.parse(serializeDates(txn)));
+      return newTxn;
+    });
+
+    res.status(201).json(GetTransactionResponse.parse(serializeDates(txn)));
+  } catch (err) {
+    logger.error({ err }, "Failed to create transaction");
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 router.get("/transactions/:id", async (req, res): Promise<void> => {

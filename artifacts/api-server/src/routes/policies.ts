@@ -14,6 +14,7 @@ import {
 import { validateAgainstPolicies } from "../lib/policy-engine";
 import { serializeList, serializeDates } from "../lib/serialize";
 import { requireAuth } from "../middlewares/auth";
+import { logger } from "../lib/logger";
 
 const router = Router();
 
@@ -31,14 +32,23 @@ router.post("/policies", async (req, res): Promise<void> => {
     return;
   }
 
-  const [policy] = await db.insert(policiesTable).values(parsed.data).returning();
+  try {
+    const policy = await db.transaction(async (tx) => {
+      const [newPolicy] = await tx.insert(policiesTable).values(parsed.data).returning();
 
-  await db.insert(auditLogsTable).values({
-    event: "POLICY_CREATED",
-    metadata: JSON.stringify({ id: policy.id, name: policy.name, type: policy.type }),
-  });
+      await tx.insert(auditLogsTable).values({
+        event: "POLICY_CREATED",
+        metadata: JSON.stringify({ id: newPolicy.id, name: newPolicy.name, type: newPolicy.type }),
+      });
 
-  res.status(201).json(serializeDates(policy));
+      return newPolicy;
+    });
+
+    res.status(201).json(serializeDates(policy));
+  } catch (err) {
+    logger.error({ err }, "Failed to create policy");
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 router.patch("/policies/:id", async (req, res): Promise<void> => {
@@ -55,23 +65,34 @@ router.patch("/policies/:id", async (req, res): Promise<void> => {
     return;
   }
 
-  const [policy] = await db
-    .update(policiesTable)
-    .set(body.data)
-    .where(eq(policiesTable.id, params.data.id))
-    .returning();
+  try {
+    const policy = await db.transaction(async (tx) => {
+      const [updatedPolicy] = await tx
+        .update(policiesTable)
+        .set(body.data)
+        .where(eq(policiesTable.id, params.data.id))
+        .returning();
 
-  if (!policy) {
-    res.status(404).json({ error: "Policy not found" });
-    return;
+      if (!updatedPolicy) return null;
+
+      await tx.insert(auditLogsTable).values({
+        event: "POLICY_UPDATED",
+        metadata: JSON.stringify({ id: updatedPolicy.id, ...body.data }),
+      });
+
+      return updatedPolicy;
+    });
+
+    if (!policy) {
+      res.status(404).json({ error: "Policy not found" });
+      return;
+    }
+
+    res.json(UpdatePolicyResponse.parse(serializeDates(policy)));
+  } catch (err) {
+    logger.error({ err }, "Failed to update policy");
+    res.status(500).json({ error: "Internal server error" });
   }
-
-  await db.insert(auditLogsTable).values({
-    event: "POLICY_UPDATED",
-    metadata: JSON.stringify({ id: policy.id, name: policy.name, enabled: policy.enabled }),
-  });
-
-  res.json(UpdatePolicyResponse.parse(serializeDates(policy)));
 });
 
 router.delete("/policies/:id", async (req, res): Promise<void> => {
@@ -82,22 +103,33 @@ router.delete("/policies/:id", async (req, res): Promise<void> => {
     return;
   }
 
-  const [policy] = await db
-    .delete(policiesTable)
-    .where(eq(policiesTable.id, params.data.id))
-    .returning();
+  try {
+    const policy = await db.transaction(async (tx) => {
+      const [deletedPolicy] = await tx
+        .delete(policiesTable)
+        .where(eq(policiesTable.id, params.data.id))
+        .returning();
 
-  if (!policy) {
-    res.status(404).json({ error: "Policy not found" });
-    return;
+      if (!deletedPolicy) return null;
+
+      await tx.insert(auditLogsTable).values({
+        event: "POLICY_DELETED",
+        metadata: JSON.stringify({ id: deletedPolicy.id, name: deletedPolicy.name }),
+      });
+
+      return deletedPolicy;
+    });
+
+    if (!policy) {
+      res.status(404).json({ error: "Policy not found" });
+      return;
+    }
+
+    res.sendStatus(204);
+  } catch (err) {
+    logger.error({ err }, "Failed to delete policy");
+    res.status(500).json({ error: "Internal server error" });
   }
-
-  await db.insert(auditLogsTable).values({
-    event: "POLICY_DELETED",
-    metadata: JSON.stringify({ id: policy.id, name: policy.name }),
-  });
-
-  res.sendStatus(204);
 });
 
 router.post("/policies/validate", async (req, res): Promise<void> => {

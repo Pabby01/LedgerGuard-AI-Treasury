@@ -1,16 +1,19 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
+import { useWallet, useBalance, useTransfer } from "@solana/react-hooks";
+import { toAddress } from "@solana/client";
 import { useWalletStore } from "@/store/use-wallet-store";
 import { useThemeStore } from "@/store/use-theme-store";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { useGetMe, useSignIn, useGetNonce, useSignOut } from "@workspace/api-client-react";
 import {
   LayoutDashboard, MessageSquare, ListTree, PieChart, Shield,
   ScrollText, Settings, Wallet, Link as LinkIcon, Unlink,
-  Sun, Moon, Menu, X, Bot,
+  Sun, Moon, Menu, X, Bot, LogOut, Loader2,
 } from "lucide-react";
+import { toast } from "sonner";
+import bs58 from "bs58";
 
 const navItems = [
   { href: "/",             label: "Dashboard",   icon: LayoutDashboard },
@@ -89,261 +92,207 @@ function SidebarContent({
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
-  const { address, setAddress } = useWalletStore();
+  const { address: storeAddress, setAddress: setStoreAddress } = useWalletStore();
   const { theme, toggle } = useThemeStore();
   const isDark = theme === "dark";
 
-  const [walletInput, setWalletInput] = useState("");
-  const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
+  const { connectors, wallet, actions } = useWallet();
+  const { data: balance } = useBalance(wallet?.status === 'connected' ? wallet.session.account.address : undefined);
+
+  const { data: me, isLoading: meLoading, refetch: refetchMe } = useGetMe();
+  const { mutateAsync: getNonce } = useGetNonce();
+  const { mutateAsync: signIn } = useSignIn();
+  const { mutateAsync: signOut } = useSignOut();
+
+  const [isConnecting, setIsConnecting] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const handleConnect = () => {
-    if (walletInput.trim()) {
-      setAddress(walletInput.trim());
-      setIsWalletModalOpen(false);
+  useEffect(() => {
+    if (me?.address) {
+      setStoreAddress(me.address);
+    } else {
+      setStoreAddress(null);
+    }
+  }, [me, setStoreAddress]);
+
+  const handleSignIn = async () => {
+    if (wallet?.status !== 'connected') {
+      const connector = connectors.all[0];
+      if (!connector) {
+        toast.error("No wallet connector found");
+        return;
+      }
+      try {
+        setIsConnecting(true);
+        await actions.connectWallet(connector.id);
+      } catch (err) {
+        toast.error("Failed to connect wallet");
+        setIsConnecting(false);
+        return;
+      }
+    }
+
+    try {
+      setIsConnecting(true);
+      const { nonce } = await getNonce();
+      if (!nonce) throw new Error("Failed to get nonce");
+
+      const address = wallet!.session.account.address.toString();
+      const message = `Sign in to LedgerGuard\n\nNonce: ${nonce}`;
+      
+      // Use standard wallet-standard signing
+      const messageUint8 = new TextEncoder().encode(message);
+      const { signature } = await (wallet as any).session.wallet.signMessage({
+          message: messageUint8,
+          account: wallet!.session.account,
+      });
+
+      await signIn({
+        data: {
+          message,
+          signature: bs58.encode(signature),
+          publicKey: address,
+        }
+      });
+
+      await refetchMe();
+      toast.success("Successfully signed in");
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || "Failed to sign in");
+    } finally {
+      setIsConnecting(false);
     }
   };
 
-  // Close mobile menu on route change
-  useEffect(() => {
-    setIsMobileMenuOpen(false);
-  }, [location]);
-
-  // Lock body scroll when mobile menu is open
-  useEffect(() => {
-    if (isMobileMenuOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      await actions.disconnectWallet();
+      await refetchMe();
+      toast.success("Signed out");
+    } catch (err) {
+      toast.error("Failed to sign out");
     }
-    return () => { document.body.style.overflow = ""; };
-  }, [isMobileMenuOpen]);
+  };
 
   return (
-    <div className={`flex min-h-screen w-full bg-background text-foreground ${isDark ? "web3-bg" : ""}`}>
+    <div className={`flex min-h-screen ${isDark ? "bg-[#0a0a0c] text-slate-200" : "bg-slate-50 text-slate-900"}`}>
+      {/* Desktop Sidebar */}
+      <aside className={`
+        hidden lg:flex flex-col w-64 border-r border-border transition-all duration-300
+        ${isDark ? "glass-panel" : "bg-white shadow-sm"}
+      `}>
+        <SidebarContent location={location} />
+      </aside>
 
-      {/* ── Animated glow orbs (dark mode only) ── */}
-      {isDark && (
-        <div className="fixed inset-0 pointer-events-none overflow-hidden z-0" aria-hidden>
-          <div
-            className="absolute w-[600px] h-[600px] rounded-full opacity-20 animate-glow-drift"
-            style={{
-              background: "radial-gradient(circle, rgba(109,40,255,0.6) 0%, transparent 70%)",
-              top: "-15%",
-              right: "5%",
-            }}
-          />
-          <div
-            className="absolute w-[500px] h-[500px] rounded-full opacity-15 animate-glow-drift-2"
-            style={{
-              background: "radial-gradient(circle, rgba(20,241,149,0.5) 0%, transparent 70%)",
-              bottom: "5%",
-              left: "10%",
-            }}
-          />
-        </div>
-      )}
-
-      {/* ── Mobile sidebar overlay ── */}
+      {/* Mobile Sidebar Overlay */}
       {isMobileMenuOpen && (
         <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden animate-fade-in"
+          className="fixed inset-0 bg-black/60 z-40 lg:hidden backdrop-blur-sm animate-fade-in"
           onClick={() => setIsMobileMenuOpen(false)}
         />
       )}
 
-      {/* ── Sidebar (desktop: always visible / mobile: slide-in drawer) ── */}
-      <aside
-        className={`
-          fixed md:sticky top-0 left-0 z-50 md:z-auto
-          w-64 h-screen md:h-screen flex-shrink-0
-          flex flex-col border-r border-border
-          ${isDark ? "bg-sidebar" : "bg-sidebar shadow-xl md:shadow-none"}
-          transition-transform duration-300 ease-in-out
-          ${isMobileMenuOpen ? "translate-x-0 animate-slide-in-left" : "-translate-x-full md:translate-x-0"}
-        `}
-      >
-        {/* Close button (mobile only) */}
-        <button
-          className="absolute top-4 right-4 md:hidden p-1.5 rounded-lg hover:bg-secondary text-muted-foreground"
-          onClick={() => setIsMobileMenuOpen(false)}
-        >
-          <X className="w-4 h-4" />
-        </button>
-
+      {/* Mobile Sidebar */}
+      <aside className={`
+        fixed top-0 bottom-0 left-0 z-50 w-72 transform transition-transform duration-300 ease-in-out lg:hidden
+        ${isDark ? "glass-panel" : "bg-white"}
+        ${isMobileMenuOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full"}
+      `}>
         <SidebarContent location={location} onNavClick={() => setIsMobileMenuOpen(false)} />
       </aside>
 
-      {/* ── Main content area ── */}
-      <div className="flex-1 flex flex-col min-w-0 relative z-10">
-
-        {/* ── Topbar ── */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Topbar */}
         <header className={`
-          sticky top-0 z-30 h-16 border-b border-border
-          flex items-center justify-between px-4 md:px-8
-          ${isDark ? "bg-background/80 backdrop-blur-xl" : "bg-background/95 backdrop-blur-sm shadow-sm"}
+          h-16 flex items-center justify-between px-4 lg:px-8 border-b border-border sticky top-0 z-30 backdrop-blur-md
+          ${isDark ? "bg-[#0a0a0c]/80" : "bg-white/80"}
         `}>
-
-          {/* Left: hamburger (mobile) + status */}
-          <div className="flex items-center gap-3">
-            {/* Hamburger — mobile only */}
-            <button
-              className="md:hidden p-2 rounded-lg hover:bg-secondary text-muted-foreground transition-colors"
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="lg:hidden hover:bg-secondary transition-colors"
               onClick={() => setIsMobileMenuOpen(true)}
             >
               <Menu className="w-5 h-5" />
-            </button>
-
-            {/* Ledger status pill */}
-            <div className={`
-              hidden sm:flex items-center gap-2 text-xs font-medium px-3 py-1.5 rounded-full border
-              ${isDark
-                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                : "bg-emerald-50 text-emerald-700 border-emerald-200"}
-            `}>
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-              </span>
-              Ledger: Speculos Connected
+            </Button>
+            <div className="hidden lg:flex items-center gap-2 text-sm text-muted-foreground animate-fade-in">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              Network Healthy
             </div>
           </div>
 
-          {/* Right: theme toggle + wallet */}
-          <div className="flex items-center gap-2 md:gap-3">
-
-            {/* Theme toggle */}
-            <button
+          <div className="flex items-center gap-2.5 lg:gap-4">
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={toggle}
-              className={`
-                p-2 rounded-lg border transition-all duration-300
-                ${isDark
-                  ? "bg-secondary/60 border-border text-amber-400 hover:bg-secondary hover:border-amber-500/30 hover:shadow-[0_0_12px_rgba(251,191,36,0.2)]"
-                  : "bg-secondary border-border text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200"}
-              `}
-              title={isDark ? "Switch to light mode" : "Switch to dark mode"}
+              className="rounded-full hover:bg-secondary transition-all duration-300 hover:rotate-12"
             >
-              {isDark
-                ? <Sun className="w-4 h-4" />
-                : <Moon className="w-4 h-4" />
-              }
-            </button>
+              {isDark ? <Sun className="w-[1.1rem] h-[1.1rem]" /> : <Moon className="w-[1.1rem] h-[1.1rem]" />}
+            </Button>
 
-            {/* Wallet */}
-            {address ? (
-              <div className={`
-                flex items-center gap-2 rounded-lg p-1 pr-3 border
-                ${isDark ? "bg-secondary border-border" : "bg-white border-border shadow-sm"}
-              `}>
-                <div className={`rounded-md p-1.5 border ${isDark ? "bg-background border-border" : "bg-secondary border-border"}`}>
-                  <Wallet className="w-4 h-4 text-primary" />
+            {me ? (
+              <div className="flex items-center gap-2">
+                <div className={`
+                  hidden md:flex flex-col items-end mr-1 animate-fade-in
+                `}>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground opacity-70">Balance</span>
+                  <span className="text-sm font-mono font-bold text-primary">
+                    {balance ? (Number(balance) / 1e9).toFixed(3) : "0.000"} SOL
+                  </span>
                 </div>
-                <span className="text-xs font-mono text-muted-foreground hidden sm:inline">
-                  {address.slice(0, 4)}...{address.slice(-4)}
-                </span>
-                <button
-                  onClick={() => setAddress(null)}
-                  className="ml-1 text-muted-foreground hover:text-destructive transition-colors"
-                  title="Disconnect wallet"
-                >
-                  <Unlink className="w-3.5 h-3.5" />
-                </button>
+                
+                <div className={`
+                  flex items-center gap-2 pl-3 pr-2 py-1.5 rounded-full border animate-fade-in
+                  ${isDark ? "bg-primary/10 border-primary/20" : "bg-primary/5 border-primary/10"}
+                `}>
+                  <div className="w-5 h-5 rounded-full bg-gradient-to-tr from-primary to-accent flex items-center justify-center text-[10px] text-white font-bold">
+                    {me.address?.slice(0, 1)}
+                  </div>
+                  <span className="text-xs font-mono font-medium hidden sm:inline">
+                    {me.address?.slice(0, 4)}...{me.address?.slice(-4)}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 rounded-full hover:bg-destructive/10 hover:text-destructive transition-colors"
+                    onClick={handleSignOut}
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
               </div>
             ) : (
-              <Dialog open={isWalletModalOpen} onOpenChange={setIsWalletModalOpen}>
-                <DialogTrigger asChild>
-                  <Button
-                    size="sm"
-                    className={`
-                      gap-1.5 font-medium transition-all duration-200
-                      ${isDark
-                        ? "border border-primary/20 bg-primary/10 text-primary hover:bg-primary/20 hover:shadow-[0_0_16px_rgba(109,40,255,0.3)]"
-                        : "bg-primary text-primary-foreground hover:bg-primary/90"}
-                    `}
-                  >
-                    <LinkIcon className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">Connect Wallet</span>
-                    <span className="sm:hidden">Connect</span>
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-md bg-card border-border">
-                  <DialogHeader>
-                    <DialogTitle className="text-xl flex items-center gap-2">
-                      <Wallet className="w-5 h-5 text-primary" />
-                      Connect Wallet
-                    </DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4 py-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="address" className="text-muted-foreground text-xs font-medium uppercase tracking-wider">
-                        Solana Wallet Address
-                      </Label>
-                      <Input
-                        id="address"
-                        placeholder="Paste your Solana address..."
-                        value={walletInput}
-                        onChange={(e) => setWalletInput(e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && handleConnect()}
-                        className="bg-background border-border font-mono text-sm"
-                      />
-                    </div>
-                    <Button onClick={handleConnect} className="w-full">
-                      Connect
-                    </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
+              <Button
+                onClick={handleSignIn}
+                disabled={isConnecting}
+                className="rounded-full px-5 h-9 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all duration-300 active:scale-95"
+              >
+                {isConnecting ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <LinkIcon className="w-4 h-4 mr-2" />
+                )}
+                Connect Wallet
+              </Button>
             )}
           </div>
         </header>
 
-        {/* ── Page content ── */}
-        <main className="flex-1 overflow-auto p-4 md:p-8 pb-20 md:pb-8">
-          {children}
+        {/* Page Content */}
+        <main className="flex-1 p-4 lg:p-8 overflow-x-hidden relative">
+          {/* Subtle background glow */}
+          <div className="fixed top-1/4 right-1/4 w-96 h-96 bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
+          <div className="fixed bottom-1/4 left-1/4 w-64 h-64 bg-accent/5 rounded-full blur-[100px] pointer-events-none" />
+          
+          <div className="relative z-10">
+            {children}
+          </div>
         </main>
       </div>
-
-      {/* ── Mobile bottom navigation ── */}
-      <nav className={`
-        fixed bottom-0 left-0 right-0 z-30 md:hidden
-        border-t border-border
-        ${isDark
-          ? "bg-background/90 backdrop-blur-xl"
-          : "bg-white/95 backdrop-blur-sm shadow-[0_-4px_16px_rgba(0,0,0,0.08)]"}
-      `}>
-        <div className="flex items-center justify-around px-1 py-2 safe-area-pb">
-          {navItems.slice(0, 5).map((item) => {
-            const isActive = location === item.href;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`
-                  flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl transition-all duration-200 min-w-[52px]
-                  ${isActive
-                    ? "text-primary"
-                    : "text-muted-foreground hover:text-foreground"}
-                `}
-              >
-                <span className={`
-                  relative p-1.5 rounded-lg transition-all duration-200
-                  ${isActive
-                    ? isDark ? "bg-primary/15 shadow-[0_0_10px_rgba(109,40,255,0.3)]" : "bg-primary/10"
-                    : ""}
-                `}>
-                  <item.icon className="w-4.5 h-4.5" style={{ width: "18px", height: "18px" }} />
-                  {isActive && (
-                    <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-primary rounded-full" />
-                  )}
-                </span>
-                <span className={`text-[10px] font-medium leading-none ${isActive ? "text-primary" : ""}`}>
-                  {item.label.split(" ")[0]}
-                </span>
-              </Link>
-            );
-          })}
-        </div>
-      </nav>
     </div>
   );
 }
