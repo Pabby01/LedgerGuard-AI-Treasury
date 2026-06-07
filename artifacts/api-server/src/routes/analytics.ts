@@ -8,8 +8,11 @@ import {
   GetTopRecipientsQueryParams,
   GetTopRecipientsResponse,
 } from "@workspace/api-zod";
+import { requireAuth } from "../middlewares/auth";
 
 const router = Router();
+
+router.use(requireAuth);
 
 router.get("/analytics/spending", async (req, res): Promise<void> => {
   const query = GetSpendingAnalyticsQueryParams.safeParse(req.query);

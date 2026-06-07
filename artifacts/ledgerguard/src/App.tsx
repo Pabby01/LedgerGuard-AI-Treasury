@@ -1,6 +1,8 @@
 import { useEffect } from "react";
 import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { SolanaProvider } from "@solana/react-hooks";
+import { createClient, autoDiscover } from "@solana/client";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppLayout } from "@/components/layout/app-layout";
@@ -21,6 +23,11 @@ const queryClient = new QueryClient({
       staleTime: 30_000,
     },
   },
+});
+
+const solanaClient = createClient({
+  endpoint: "https://api.devnet.solana.com",
+  walletConnectors: autoDiscover(),
 });
 
 function ThemeProvider({ children }: { children: React.ReactNode }) {
@@ -58,14 +65,16 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <ThemeProvider>
-          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-            <Router />
-          </WouterRouter>
-          <Toaster />
-        </ThemeProvider>
-      </TooltipProvider>
+      <SolanaProvider client={solanaClient}>
+        <TooltipProvider>
+          <ThemeProvider>
+            <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+              <Router />
+            </WouterRouter>
+            <Toaster />
+          </ThemeProvider>
+        </TooltipProvider>
+      </SolanaProvider>
     </QueryClientProvider>
   );
 }

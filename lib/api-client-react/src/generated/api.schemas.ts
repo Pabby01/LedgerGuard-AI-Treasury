@@ -263,6 +263,20 @@ export interface RecipientSummary {
   transactionCount: number;
 }
 
+export type GetNonce200 = {
+  nonce?: string;
+};
+
+export type SignInBody = {
+  message: string;
+  signature: string;
+  publicKey: string;
+};
+
+export type GetMe200 = {
+  address?: string;
+};
+
 export type ListTransactionsParams = {
 status?: string;
 limit?: number;

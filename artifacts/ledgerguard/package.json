@@ -75,7 +75,9 @@
     "zod": "catalog:"
   },
   "dependencies": {
-    "@solana/web3.js": "^1.98.4",
+    "@solana/client": "catalog:",
+    "@solana/react-hooks": "catalog:",
+    "@solana/web3.js": "catalog:",
     "bs58": "^6.0.0",
     "zustand": "^5.0.14"
   }

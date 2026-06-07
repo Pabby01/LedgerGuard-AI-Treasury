@@ -6,8 +6,11 @@ import {
   GetRecentActivityQueryParams,
   GetRecentActivityResponse,
 } from "@workspace/api-zod";
+import { requireAuth } from "../middlewares/auth";
 
 const router = Router();
+
+router.use(requireAuth);
 
 router.get("/dashboard/stats", async (_req, res): Promise<void> => {
   const now = new Date();

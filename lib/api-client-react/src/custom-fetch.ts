@@ -362,6 +362,11 @@ export async function customFetch<T = unknown>(
 
   const response = await fetch(input, { ...init, method, headers });
 
+  if (response.status === 401 && !requestInfo.url.includes("/auth/me")) {
+    // Optional: trigger a redirect to login or clear auth state
+    // For now we just let the error throw
+  }
+
   if (!response.ok) {
     const errorData = await parseErrorBody(response, method);
     throw new ApiError(response, errorData, requestInfo);

@@ -21,10 +21,13 @@ import {
 import { Connection, PublicKey, SystemProgram, Transaction, LAMPORTS_PER_SOL, sendAndConfirmRawTransaction } from "@solana/web3.js";
 import { assessRisk } from "../lib/risk-engine";
 import { serializeList, serializeDates } from "../lib/serialize";
+import { requireAuth } from "../middlewares/auth";
 
 const router = Router();
 
 const getRpcUrl = () => process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com";
+
+router.use(requireAuth);
 
 router.get("/transactions", async (req, res): Promise<void> => {
   const query = ListTransactionsQueryParams.safeParse(req.query);

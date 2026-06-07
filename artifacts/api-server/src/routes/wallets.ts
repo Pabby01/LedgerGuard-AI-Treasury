@@ -11,11 +11,14 @@ import {
 import { Connection, PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { auditLogsTable } from "@workspace/db";
 import { serializeList, serializeDates } from "../lib/serialize";
+import { requireAuth } from "../middlewares/auth";
 
 const router = Router();
 
 const getRpcUrl = () =>
   process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com";
+
+router.use(requireAuth);
 
 router.get("/wallets", async (req, res): Promise<void> => {
   const wallets = await db.select().from(walletsTable).orderBy(walletsTable.createdAt);

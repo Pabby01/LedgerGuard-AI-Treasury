@@ -1,2 +1,4 @@
 export * from "./generated/api";
-export * from "./generated/types";
+// Exporting generated types can cause conflicts with zod schemas from api.ts
+// Export only if needed or use specific exports
+// export * from "./generated/types";

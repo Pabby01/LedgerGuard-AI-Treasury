@@ -13,8 +13,11 @@ import {
 } from "@workspace/api-zod";
 import { validateAgainstPolicies } from "../lib/policy-engine";
 import { serializeList, serializeDates } from "../lib/serialize";
+import { requireAuth } from "../middlewares/auth";
 
 const router = Router();
+
+router.use(requireAuth);
 
 router.get("/policies", async (_req, res): Promise<void> => {
   const policies = await db.select().from(policiesTable).orderBy(policiesTable.createdAt);

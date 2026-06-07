@@ -9,8 +9,11 @@ import {
 } from "@workspace/api-zod";
 import OpenAI from "openai";
 import { serializeList, serializeDates } from "../lib/serialize";
+import { requireAuth } from "../middlewares/auth";
 
 const router = Router();
+
+router.use(requireAuth);
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 

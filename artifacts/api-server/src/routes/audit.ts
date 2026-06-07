@@ -3,11 +3,13 @@ import { desc } from "drizzle-orm";
 import { db, auditLogsTable } from "@workspace/db";
 import {
   ListAuditLogsQueryParams,
-  ListAuditLogsResponse,
-} from "@workspace/api-zod";
+import { ListAuditLogsResponse } from "@workspace/api-zod";
 import { serializeList } from "../lib/serialize";
+import { requireAuth } from "../middlewares/auth";
 
 const router = Router();
+
+router.use(requireAuth);
 
 router.get("/audit-logs", async (req, res): Promise<void> => {
   const query = ListAuditLogsQueryParams.safeParse(req.query);

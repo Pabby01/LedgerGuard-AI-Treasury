@@ -8,6 +8,8 @@ servers:
   - url: /api
     description: Base API path
 tags:
+  - name: auth
+    description: Authentication operations
   - name: health
     description: Health operations
   - name: wallets
@@ -25,6 +27,71 @@ tags:
   - name: dashboard
     description: Dashboard summary data
 paths:
+  /auth/nonce:
+    get:
+      operationId: getNonce
+      tags: [auth]
+      summary: Get a sign-in nonce
+      responses:
+        "200":
+          description: Nonce
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  nonce:
+                    type: string
+  /auth/signin:
+    post:
+      operationId: signIn
+      tags: [auth]
+      summary: Sign in with Solana (SIWS)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [message, signature, publicKey]
+              properties:
+                message:
+                  type: string
+                signature:
+                  type: string
+                publicKey:
+                  type: string
+      responses:
+        "200":
+          description: Signed in
+        "401":
+          description: Invalid signature
+  /auth/signout:
+    post:
+      operationId: signOut
+      tags: [auth]
+      summary: Sign out
+      responses:
+        "204":
+          description: Signed out
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current session user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  address:
+                    type: string
+        "401":
+          description: Not authenticated
+
   /healthz:
     get:
       operationId: healthCheck

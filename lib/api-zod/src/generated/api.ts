@@ -9,6 +9,32 @@ import * as zod from 'zod';
 
 
 /**
+ * @summary Get a sign-in nonce
+ */
+export const GetNonceResponse = zod.object({
+  "nonce": zod.string().optional()
+})
+
+
+/**
+ * @summary Sign in with Solana (SIWS)
+ */
+export const SignInBody = zod.object({
+  "message": zod.string(),
+  "signature": zod.string(),
+  "publicKey": zod.string()
+})
+
+
+/**
+ * @summary Get current session user
+ */
+export const GetMeResponse = zod.object({
+  "address": zod.string().optional()
+})
+
+
+/**
  * @summary Health check
  */
 export const HealthCheckResponse = zod.object({
