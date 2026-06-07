@@ -1,0 +1,504 @@
+# PROJECT: LedgerGuard AI Treasury OS
+
+Build a production-grade full-stack SaaS application called LedgerGuard.
+
+LedgerGuard is an AI-powered treasury operating system for Solana organizations, startups, DAOs, communities, and businesses.
+
+The core principle of the product is:
+
+"AI can prepare transactions. Only Ledger can authorize them."
+
+The application must be fully functional on Solana Devnet and capable of moving to Mainnet simply by changing environment variables.
+
+This is NOT a mockup project.
+
+Build a working application with real wallet connections, real transaction creation, real transaction simulation, real transaction broadcasting, database persistence, AI-powered transaction generation, policy validation, audit logging, and Ledger integration readiness.
+
+---
+
+# PRIMARY USER JOURNEY
+
+1. User connects wallet.
+2. LedgerGuard loads treasury information.
+3. User chats with AI.
+4. AI generates treasury actions.
+5. Policy engine validates action.
+6. Risk engine scores transaction.
+7. Transaction is created.
+8. User reviews transaction.
+9. Transaction is signed through Ledger.
+10. Transaction is broadcast to Solana.
+11. Audit logs are stored.
+12. Dashboard updates automatically.
+
+---
+
+# TECH STACK
+
+Frontend:
+
+* Next.js 15 App Router
+* TypeScript
+* TailwindCSS
+* shadcn/ui
+* Framer Motion
+* Zustand
+* React Query
+
+Backend:
+
+* Next.js API Routes
+* TypeScript
+
+Database:
+
+* PostgreSQL
+* Prisma ORM
+
+AI:
+
+* OpenAI SDK
+* Structured JSON outputs only
+
+Blockchain:
+
+* @solana/web3.js
+* Solana Wallet Adapter
+
+Wallet Support:
+
+* Phantom
+* Solflare
+* Backpack
+
+Charts:
+
+* Recharts
+
+Validation:
+
+* Zod
+
+Authentication:
+
+* Wallet-based authentication
+* Session persistence
+
+---
+
+# ENVIRONMENT CONFIGURATION
+
+Create environment switching.
+
+Example:
+
+NEXT_PUBLIC_SOLANA_NETWORK=devnet
+
+RPC_URL=https://api.devnet.solana.com
+
+OPENAI_API_KEY=
+
+DATABASE_URL=
+
+LEDGER_MODE=speculos
+
+When switched to:
+
+NEXT_PUBLIC_SOLANA_NETWORK=mainnet-beta
+
+The application should automatically operate on mainnet without code modifications.
+
+---
+
+# DATABASE SCHEMA
+
+Users
+
+* id
+* walletAddress
+* createdAt
+
+Wallets
+
+* id
+* address
+* network
+* ownerId
+
+Transactions
+
+* id
+* signature
+* amount
+* recipient
+* status
+* riskScore
+* network
+* createdAt
+
+Policies
+
+* id
+* type
+* value
+* enabled
+
+AuditLogs
+
+* id
+* event
+* metadata
+* createdAt
+
+AIConversations
+
+* id
+* prompt
+* response
+* createdAt
+
+---
+
+# APPLICATION PAGES
+
+## Dashboard
+
+Display:
+
+Treasury Balance
+
+Portfolio Value
+
+Monthly Outflows
+
+Monthly Inflows
+
+Risk Score
+
+Treasury Health Score
+
+Recent Transactions
+
+Pending Approvals
+
+Connected Wallets
+
+Network Status
+
+Ledger Status
+
+---
+
+# AI TREASURY PAGE
+
+Build a ChatGPT-style treasury interface.
+
+User can type:
+
+"Pay contributors this week"
+
+"Transfer 2 SOL to operations wallet"
+
+"Show treasury health"
+
+"Analyze spending"
+
+"Create payroll batch"
+
+"Schedule vendor payment"
+
+AI must return structured action proposals.
+
+Example:
+
+{
+"action": "transfer",
+"amount": 2,
+"token": "SOL",
+"recipient": "wallet_address",
+"reason": "weekly payroll"
+}
+
+Store all conversations.
+
+---
+
+# POLICY ENGINE
+
+Create treasury guardrails.
+
+Examples:
+
+Maximum Transaction Amount
+
+Allowed Wallet List
+
+Business Hours Restrictions
+
+Payroll Approval Requirements
+
+Large Transfer Warnings
+
+All transactions must pass policy validation before execution.
+
+---
+
+# RISK ENGINE
+
+Every transaction receives a risk score.
+
+Inputs:
+
+Amount
+
+Recipient History
+
+Wallet Reputation
+
+Transfer Frequency
+
+Treasury Exposure
+
+Output:
+
+{
+"riskScore": 82,
+"level": "HIGH",
+"reasons": [
+"Large transfer amount",
+"Unknown recipient",
+"Outside business hours"
+]
+}
+
+Display visually.
+
+---
+
+# TREASURY ANALYTICS
+
+Show:
+
+Runway
+
+Burn Rate
+
+Average Transaction Size
+
+Largest Recipients
+
+Weekly Spending
+
+Monthly Spending
+
+Treasury Health Score
+
+Interactive charts required.
+
+---
+
+# TRANSACTION BUILDER
+
+Build a transaction service.
+
+Capabilities:
+
+Create SOL Transfers
+
+Simulate Transactions
+
+Estimate Fees
+
+Validate Balances
+
+Generate Signable Payloads
+
+Broadcast Transactions
+
+Store Transaction History
+
+Support batching.
+
+---
+
+# LEDGER INTEGRATION LAYER
+
+Create an abstraction layer.
+
+Interfaces:
+
+LedgerProvider
+
+SpeculosProvider
+
+Future HardwareProvider
+
+Methods:
+
+connect()
+
+prepareTransaction()
+
+requestSignature()
+
+broadcast()
+
+The architecture must allow replacing Speculos with physical Ledger devices without changing business logic.
+
+---
+
+# SPECULOS SUPPORT
+
+Build support for Ledger Speculos emulator.
+
+Display:
+
+Device Connected
+
+Waiting for Approval
+
+Approved
+
+Rejected
+
+Signature Generated
+
+Transaction Broadcast
+
+Create real-time UI updates.
+
+---
+
+# AUDIT LOGGING
+
+Every action must be logged.
+
+Examples:
+
+Wallet Connected
+
+AI Proposal Generated
+
+Policy Check Passed
+
+Policy Check Failed
+
+Transaction Prepared
+
+Ledger Approval Requested
+
+Ledger Approval Granted
+
+Transaction Broadcasted
+
+Transaction Failed
+
+Store all logs.
+
+---
+
+# TRANSACTIONS PAGE
+
+Display:
+
+Signature
+
+Recipient
+
+Amount
+
+Status
+
+Risk Score
+
+Date
+
+Network
+
+Clickable transaction details modal.
+
+---
+
+# SETTINGS PAGE
+
+Allow:
+
+Network Switching
+
+RPC Configuration
+
+Policy Configuration
+
+AI Configuration
+
+Ledger Mode Configuration
+
+Notification Settings
+
+---
+
+# DESIGN REQUIREMENTS
+
+Enterprise-grade fintech appearance.
+
+Inspired by:
+
+Stripe
+
+Ramp
+
+Mercury
+
+Brex
+
+Vercel
+
+Use:
+
+Dark Mode
+
+Glassmorphism cards
+
+Subtle gradients
+
+Professional typography
+
+Smooth animations
+
+Premium dashboard experience
+
+No placeholder content.
+
+Populate with realistic treasury data.
+
+---
+
+# CODE QUALITY REQUIREMENTS
+
+Strict TypeScript
+
+Clean architecture
+
+Repository pattern
+
+Reusable components
+
+Zod validation
+
+Error boundaries
+
+Loading states
+
+Optimistic updates
+
+Responsive design
+
+Production-ready folder structure
+
+No mock APIs
+
+No fake blockchain logic
+
+Use real Solana Web3.js integrations.
+
+Generate all frontend, backend, database schema, API routes, services, hooks, utility functions, types, and UI components necessary for a complete working MVP.

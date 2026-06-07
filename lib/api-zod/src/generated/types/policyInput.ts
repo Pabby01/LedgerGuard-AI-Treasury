@@ -6,6 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface HealthStatus {
-  status: string;
+export interface PolicyInput {
+  type: string;
+  name: string;
+  value: string;
+  enabled?: boolean;
+  description?: string;
 }

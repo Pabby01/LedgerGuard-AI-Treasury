@@ -3,20 +3,33 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: LedgerGuard AI Treasury OS API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: wallets
+    description: Wallet operations
+  - name: transactions
+    description: Transaction operations
+  - name: policies
+    description: Policy engine operations
+  - name: ai
+    description: AI treasury assistant operations
+  - name: audit
+    description: Audit log operations
+  - name: analytics
+    description: Analytics and reporting
+  - name: dashboard
+    description: Dashboard summary data
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,13 +37,873 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  # ── Wallets ──────────────────────────────────────────────────────────────────
+  /wallets:
+    get:
+      operationId: listWallets
+      tags: [wallets]
+      summary: List connected wallets
+      responses:
+        "200":
+          description: List of wallets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Wallet"
+    post:
+      operationId: connectWallet
+      tags: [wallets]
+      summary: Connect a wallet
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WalletInput"
+      responses:
+        "201":
+          description: Wallet connected
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Wallet"
+
+  /wallets/{id}:
+    delete:
+      operationId: disconnectWallet
+      tags: [wallets]
+      summary: Disconnect a wallet
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Disconnected
+
+  /wallets/{id}/balance:
+    get:
+      operationId: getWalletBalance
+      tags: [wallets]
+      summary: Get live balance for a wallet from Solana
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Wallet balance
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WalletBalance"
+
+  # ── Transactions ──────────────────────────────────────────────────────────────
+  /transactions:
+    get:
+      operationId: listTransactions
+      tags: [transactions]
+      summary: List all transactions
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: offset
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Transaction list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Transaction"
+    post:
+      operationId: createTransaction
+      tags: [transactions]
+      summary: Create a new transaction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TransactionInput"
+      responses:
+        "201":
+          description: Transaction created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transaction"
+
+  /transactions/{id}:
+    get:
+      operationId: getTransaction
+      tags: [transactions]
+      summary: Get transaction detail
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Transaction
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transaction"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateTransaction
+      tags: [transactions]
+      summary: Update transaction status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TransactionUpdate"
+      responses:
+        "200":
+          description: Updated transaction
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transaction"
+
+  /transactions/{id}/simulate:
+    post:
+      operationId: simulateTransaction
+      tags: [transactions]
+      summary: Simulate a transaction on Solana
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Simulation result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SimulationResult"
+
+  /transactions/{id}/broadcast:
+    post:
+      operationId: broadcastTransaction
+      tags: [transactions]
+      summary: Broadcast a signed transaction to Solana
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BroadcastInput"
+      responses:
+        "200":
+          description: Broadcast result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BroadcastResult"
+
+  /transactions/{id}/risk:
+    get:
+      operationId: getTransactionRisk
+      tags: [transactions]
+      summary: Get risk score for a transaction
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Risk assessment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RiskAssessment"
+
+  # ── Policies ──────────────────────────────────────────────────────────────────
+  /policies:
+    get:
+      operationId: listPolicies
+      tags: [policies]
+      summary: List treasury policies
+      responses:
+        "200":
+          description: Policy list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Policy"
+    post:
+      operationId: createPolicy
+      tags: [policies]
+      summary: Create a policy
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PolicyInput"
+      responses:
+        "201":
+          description: Policy created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Policy"
+
+  /policies/{id}:
+    patch:
+      operationId: updatePolicy
+      tags: [policies]
+      summary: Update a policy
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PolicyUpdate"
+      responses:
+        "200":
+          description: Updated policy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Policy"
+    delete:
+      operationId: deletePolicy
+      tags: [policies]
+      summary: Delete a policy
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /policies/validate:
+    post:
+      operationId: validateAgainstPolicies
+      tags: [policies]
+      summary: Validate a proposed transaction against all policies
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PolicyValidationInput"
+      responses:
+        "200":
+          description: Validation result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PolicyValidationResult"
+
+  # ── AI Treasury ───────────────────────────────────────────────────────────────
+  /ai/conversations:
+    get:
+      operationId: listAiConversations
+      tags: [ai]
+      summary: List AI conversation history
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Conversation list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AiConversation"
+
+  /ai/chat:
+    post:
+      operationId: sendAiMessage
+      tags: [ai]
+      summary: Send a message to the AI treasury assistant
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AiMessageInput"
+      responses:
+        "200":
+          description: AI response with optional action proposal
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiMessageResponse"
+
+  # ── Audit Logs ────────────────────────────────────────────────────────────────
+  /audit-logs:
+    get:
+      operationId: listAuditLogs
+      tags: [audit]
+      summary: List audit logs
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: offset
+          in: query
+          schema:
+            type: integer
+        - name: event
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Audit log list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AuditLog"
+
+  # ── Dashboard ─────────────────────────────────────────────────────────────────
+  /dashboard/stats:
+    get:
+      operationId: getDashboardStats
+      tags: [dashboard]
+      summary: Get treasury dashboard summary stats
+      responses:
+        "200":
+          description: Dashboard stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardStats"
+
+  /dashboard/recent-activity:
+    get:
+      operationId: getRecentActivity
+      tags: [dashboard]
+      summary: Get recent treasury activity feed
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Recent activity
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActivityItem"
+
+  # ── Analytics ─────────────────────────────────────────────────────────────────
+  /analytics/spending:
+    get:
+      operationId: getSpendingAnalytics
+      tags: [analytics]
+      summary: Get spending breakdown by period
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [weekly, monthly, quarterly]
+      responses:
+        "200":
+          description: Spending analytics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SpendingAnalytics"
+
+  /analytics/treasury-health:
+    get:
+      operationId: getTreasuryHealth
+      tags: [analytics]
+      summary: Get treasury health score and runway metrics
+      responses:
+        "200":
+          description: Treasury health data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TreasuryHealth"
+
+  /analytics/top-recipients:
+    get:
+      operationId: getTopRecipients
+      tags: [analytics]
+      summary: Get top transaction recipients
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Top recipients
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RecipientSummary"
+
 components:
   schemas:
     HealthStatus:
       type: object
+      required: [status]
       properties:
         status:
           type: string
-      required:
-        - status
 
+    # ── Wallets ────────────────────────────────────────────────────────────────
+    Wallet:
+      type: object
+      required: [id, address, network, createdAt]
+      properties:
+        id:
+          type: integer
+        address:
+          type: string
+        network:
+          type: string
+        label:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+
+    WalletInput:
+      type: object
+      required: [address, network]
+      properties:
+        address:
+          type: string
+        network:
+          type: string
+        label:
+          type: string
+
+    WalletBalance:
+      type: object
+      required: [address, balanceLamports, balanceSol, network]
+      properties:
+        address:
+          type: string
+        balanceLamports:
+          type: number
+        balanceSol:
+          type: number
+        network:
+          type: string
+
+    # ── Transactions ───────────────────────────────────────────────────────────
+    Transaction:
+      type: object
+      required: [id, amount, recipient, token, status, riskScore, network, createdAt]
+      properties:
+        id:
+          type: integer
+        signature:
+          type: ["string", "null"]
+        amount:
+          type: number
+        recipient:
+          type: string
+        token:
+          type: string
+        memo:
+          type: ["string", "null"]
+        status:
+          type: string
+          enum: [pending, approved, rejected, signed, broadcast, confirmed, failed]
+        riskScore:
+          type: ["integer", "null"]
+        riskLevel:
+          type: ["string", "null"]
+        network:
+          type: string
+        fromWalletAddress:
+          type: ["string", "null"]
+        aiProposed:
+          type: boolean
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+
+    TransactionInput:
+      type: object
+      required: [amount, recipient, token, network]
+      properties:
+        amount:
+          type: number
+        recipient:
+          type: string
+        token:
+          type: string
+        memo:
+          type: string
+        network:
+          type: string
+        fromWalletAddress:
+          type: string
+        aiProposed:
+          type: boolean
+
+    TransactionUpdate:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [pending, approved, rejected, signed, broadcast, confirmed, failed]
+        signature:
+          type: string
+        riskScore:
+          type: integer
+        riskLevel:
+          type: string
+
+    SimulationResult:
+      type: object
+      required: [success, estimatedFee, logs]
+      properties:
+        success:
+          type: boolean
+        estimatedFee:
+          type: number
+        logs:
+          type: array
+          items:
+            type: string
+        error:
+          type: ["string", "null"]
+
+    BroadcastInput:
+      type: object
+      required: [signedTransaction]
+      properties:
+        signedTransaction:
+          type: string
+
+    BroadcastResult:
+      type: object
+      required: [signature, success]
+      properties:
+        signature:
+          type: string
+        success:
+          type: boolean
+        error:
+          type: ["string", "null"]
+
+    RiskAssessment:
+      type: object
+      required: [riskScore, level, reasons]
+      properties:
+        riskScore:
+          type: integer
+        level:
+          type: string
+          enum: [LOW, MEDIUM, HIGH, CRITICAL]
+        reasons:
+          type: array
+          items:
+            type: string
+
+    # ── Policies ───────────────────────────────────────────────────────────────
+    Policy:
+      type: object
+      required: [id, type, value, enabled, createdAt]
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+        name:
+          type: string
+        value:
+          type: string
+        enabled:
+          type: boolean
+        description:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+
+    PolicyInput:
+      type: object
+      required: [type, name, value]
+      properties:
+        type:
+          type: string
+        name:
+          type: string
+        value:
+          type: string
+        enabled:
+          type: boolean
+        description:
+          type: string
+
+    PolicyUpdate:
+      type: object
+      properties:
+        type:
+          type: string
+        name:
+          type: string
+        value:
+          type: string
+        enabled:
+          type: boolean
+        description:
+          type: string
+
+    PolicyValidationInput:
+      type: object
+      required: [amount, recipient, token]
+      properties:
+        amount:
+          type: number
+        recipient:
+          type: string
+        token:
+          type: string
+        timestamp:
+          type: string
+
+    PolicyValidationResult:
+      type: object
+      required: [passed, violations]
+      properties:
+        passed:
+          type: boolean
+        violations:
+          type: array
+          items:
+            type: string
+        warnings:
+          type: array
+          items:
+            type: string
+
+    # ── AI ─────────────────────────────────────────────────────────────────────
+    AiConversation:
+      type: object
+      required: [id, prompt, response, createdAt]
+      properties:
+        id:
+          type: integer
+        prompt:
+          type: string
+        response:
+          type: string
+        actionProposal:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+
+    AiMessageInput:
+      type: object
+      required: [prompt]
+      properties:
+        prompt:
+          type: string
+        walletAddress:
+          type: string
+        treasuryBalance:
+          type: number
+
+    AiMessageResponse:
+      type: object
+      required: [id, response]
+      properties:
+        id:
+          type: integer
+        response:
+          type: string
+        actionProposal:
+          type: object
+          nullable: true
+          properties:
+            action:
+              type: string
+            amount:
+              type: number
+            token:
+              type: string
+            recipient:
+              type: string
+            reason:
+              type: string
+
+    # ── Audit Logs ─────────────────────────────────────────────────────────────
+    AuditLog:
+      type: object
+      required: [id, event, createdAt]
+      properties:
+        id:
+          type: integer
+        event:
+          type: string
+        metadata:
+          type: ["string", "null"]
+        walletAddress:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+
+    # ── Dashboard ──────────────────────────────────────────────────────────────
+    DashboardStats:
+      type: object
+      required: [treasuryBalance, portfolioValue, monthlyOutflow, monthlyInflow, riskScore, healthScore, pendingCount, connectedWallets, network]
+      properties:
+        treasuryBalance:
+          type: number
+        portfolioValue:
+          type: number
+        monthlyOutflow:
+          type: number
+        monthlyInflow:
+          type: number
+        riskScore:
+          type: integer
+        healthScore:
+          type: integer
+        pendingCount:
+          type: integer
+        connectedWallets:
+          type: integer
+        network:
+          type: string
+
+    ActivityItem:
+      type: object
+      required: [id, type, description, timestamp]
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+        description:
+          type: string
+        amount:
+          type: ["number", "null"]
+        status:
+          type: ["string", "null"]
+        timestamp:
+          type: string
+
+    # ── Analytics ──────────────────────────────────────────────────────────────
+    SpendingAnalytics:
+      type: object
+      required: [period, data, totalSpent, avgTransactionSize, transactionCount]
+      properties:
+        period:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/SpendingDataPoint"
+        totalSpent:
+          type: number
+        avgTransactionSize:
+          type: number
+        transactionCount:
+          type: integer
+
+    SpendingDataPoint:
+      type: object
+      required: [label, amount]
+      properties:
+        label:
+          type: string
+        amount:
+          type: number
+        count:
+          type: integer
+
+    TreasuryHealth:
+      type: object
+      required: [healthScore, runway, burnRate, runwayMonths]
+      properties:
+        healthScore:
+          type: integer
+        runway:
+          type: number
+        burnRate:
+          type: number
+        runwayMonths:
+          type: number
+        status:
+          type: string
+
+    RecipientSummary:
+      type: object
+      required: [address, totalAmount, transactionCount]
+      properties:
+        address:
+          type: string
+        label:
+          type: ["string", "null"]
+        totalAmount:
+          type: number
+        transactionCount:
+          type: integer

@@ -6,6 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface HealthStatus {
-  status: string;
+export interface TreasuryHealth {
+  healthScore: number;
+  runway: number;
+  burnRate: number;
+  runwayMonths: number;
+  status?: string;
 }

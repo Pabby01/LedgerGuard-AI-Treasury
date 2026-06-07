@@ -18,3 +18,18 @@ expertMode = true
 [postMerge]
 path = "scripts/post-merge.sh"
 timeoutMs = 20000
+
+[[ports]]
+localPort = 8080
+externalPort = 80
+
+[[ports]]
+localPort = 8081
+externalPort = 8081
+
+[userenv]
+
+[userenv.shared]
+NEXT_PUBLIC_SOLANA_NETWORK = "devnet"
+SOLANA_RPC_URL = "https://api.devnet.solana.com"
+LEDGER_MODE = "speculos"
