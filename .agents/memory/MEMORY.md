@@ -1,0 +1,3 @@
+- [Drizzle date serialization](drizzle-date-serialization.md) — Drizzle returns Date objects; Orval-generated Zod schemas use zod.string() for dates. Must serialize before .parse().
+- [Solana wallet adapter blocked](solana-wallet-adapter.md) — @solana/wallet-adapter-* packages blocked by firewall; use custom Zustand store + manual address input instead.
+- [OpenAI direct SDK](openai-direct.md) — User uses OPENAI_API_KEY env var directly (not Replit AI proxy) because they declined the paid tier upgrade.
