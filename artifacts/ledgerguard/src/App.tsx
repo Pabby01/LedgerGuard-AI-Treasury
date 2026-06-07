@@ -1,8 +1,10 @@
+import { useEffect } from "react";
 import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppLayout } from "@/components/layout/app-layout";
+import { useThemeStore } from "@/store/use-theme-store";
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
 import AiTreasury from "@/pages/ai-treasury";
@@ -21,9 +23,19 @@ const queryClient = new QueryClient({
   },
 });
 
-// Enforce dark mode globally
-if (typeof document !== "undefined") {
-  document.documentElement.classList.add("dark");
+function ThemeProvider({ children }: { children: React.ReactNode }) {
+  const { theme } = useThemeStore();
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (theme === "dark") {
+      root.classList.add("dark");
+    } else {
+      root.classList.remove("dark");
+    }
+  }, [theme]);
+
+  return <>{children}</>;
 }
 
 function Router() {
@@ -47,10 +59,12 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-          <Router />
-        </WouterRouter>
-        <Toaster />
+        <ThemeProvider>
+          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+            <Router />
+          </WouterRouter>
+          <Toaster />
+        </ThemeProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );

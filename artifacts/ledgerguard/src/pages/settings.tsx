@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useWalletStore } from "@/store/use-wallet-store";
+import { useThemeStore } from "@/store/use-theme-store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,6 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CheckCircle, Save } from "lucide-react";
 
 export default function Settings() {
+  const { theme } = useThemeStore();
+  const isDark = theme === "dark";
   const { network, setNetwork } = useWalletStore();
   const [rpcUrl, setRpcUrl] = useState(
     network === "mainnet-beta" ? "https://api.mainnet-beta.solana.com" : "https://api.devnet.solana.com"
@@ -26,15 +29,17 @@ export default function Settings() {
     setTimeout(() => setSaved(false), 2500);
   };
 
+  const sectionClass = `border rounded-xl p-5 space-y-4 animate-fade-in-up ${isDark ? "glass-card" : "bg-white border-border shadow-sm"}`;
+
   return (
     <div className="space-y-6 max-w-2xl">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
+      <div className="animate-fade-in-up">
+        <h1 className={`text-2xl font-bold tracking-tight ${isDark ? "shimmer-text" : "text-foreground"}`}>Settings</h1>
         <p className="text-sm text-muted-foreground mt-0.5">Configure your LedgerGuard treasury environment</p>
       </div>
 
       {/* Network */}
-      <section className="bg-card border border-border rounded-xl p-5 space-y-4">
+      <section className={sectionClass} style={{ animationDelay: "60ms" }}>
         <h2 className="text-sm font-semibold flex items-center gap-2">Network Configuration</h2>
         <div className="space-y-1.5">
           <Label>Solana Network</Label>
@@ -62,7 +67,7 @@ export default function Settings() {
       </section>
 
       {/* Ledger */}
-      <section className="bg-card border border-border rounded-xl p-5 space-y-4">
+      <section className={sectionClass} style={{ animationDelay: "120ms" }}>
         <h2 className="text-sm font-semibold">Ledger Configuration</h2>
         <div className="space-y-1.5">
           <Label>Ledger Mode</Label>
@@ -86,7 +91,7 @@ export default function Settings() {
       </section>
 
       {/* AI */}
-      <section className="bg-card border border-border rounded-xl p-5 space-y-4">
+      <section className={sectionClass} style={{ animationDelay: "180ms" }}>
         <h2 className="text-sm font-semibold">AI Configuration</h2>
         <div className="space-y-1.5">
           <Label>AI Model</Label>

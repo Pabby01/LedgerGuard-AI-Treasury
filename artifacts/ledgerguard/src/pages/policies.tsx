@@ -7,6 +7,7 @@ import {
   getListPoliciesQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { useThemeStore } from "@/store/use-theme-store";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -25,6 +26,8 @@ const POLICY_TYPES = [
 ];
 
 export default function Policies() {
+  const { theme } = useThemeStore();
+  const isDark = theme === "dark";
   const queryClient = useQueryClient();
   const { data: policies, isLoading } = useListPolicies();
   const createPolicy = useCreatePolicy();
@@ -60,9 +63,9 @@ export default function Policies() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between animate-fade-in-up">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Treasury Policies</h1>
+          <h1 className={`text-2xl font-bold tracking-tight ${isDark ? "shimmer-text" : "text-foreground"}`}>Treasury Policies</h1>
           <p className="text-sm text-muted-foreground mt-0.5">Guardrails that every transaction must pass before execution</p>
         </div>
         <Button size="sm" onClick={() => setShowCreate(true)} className="gap-1.5">
@@ -73,8 +76,12 @@ export default function Policies() {
       <div className="space-y-3">
         {isLoading
           ? Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-20 rounded-xl" />)
-          : policies?.map((p) => (
-              <div key={p.id} className="bg-card border border-border rounded-xl px-5 py-4 flex items-center gap-4">
+          : policies?.map((p, i) => (
+              <div
+                key={p.id}
+                className={`border rounded-xl px-5 py-4 flex items-center gap-4 transition-all duration-200 animate-fade-in-up glow-hover ${isDark ? "glass-card" : "bg-white border-border shadow-sm"}`}
+                style={{ animationDelay: `${i * 50 + 60}ms` }}
+              >
                 {p.type.includes("block") || p.type.includes("max") ? (
                   <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0" />
                 ) : (

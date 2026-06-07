@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useListAiConversations, useSendAiMessage, useCreateTransaction, getListAiConversationsQueryKey, getListTransactionsQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useWalletStore } from "@/store/use-wallet-store";
+import { useThemeStore } from "@/store/use-theme-store";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -68,6 +69,8 @@ function ActionProposalCard({ proposal, onApprove, onDismiss, isPending }: {
 }
 
 export default function AiTreasury() {
+  const { theme } = useThemeStore();
+  const isDark = theme === "dark";
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Array<{
     role: "user" | "assistant";
@@ -158,8 +161,8 @@ export default function AiTreasury() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)]">
-      <div className="mb-4">
-        <h1 className="text-2xl font-bold tracking-tight">AI Treasury Assistant</h1>
+      <div className="mb-4 animate-fade-in-up">
+        <h1 className={`text-2xl font-bold tracking-tight ${isDark ? "shimmer-text" : "text-foreground"}`}>AI Treasury Assistant</h1>
         <p className="text-sm text-muted-foreground mt-0.5">Chat with your AI treasury advisor. AI proposes, Ledger authorizes.</p>
       </div>
 

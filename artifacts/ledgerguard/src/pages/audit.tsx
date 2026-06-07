@@ -1,4 +1,5 @@
 import { useListAuditLogs } from "@workspace/api-client-react";
+import { useThemeStore } from "@/store/use-theme-store";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollText, Wifi, Bot, Shield, ShieldAlert, Send, Check, X, AlertTriangle, Key } from "lucide-react";
 
@@ -27,16 +28,18 @@ function getEventMeta(event: string) {
 }
 
 export default function AuditLogs() {
+  const { theme } = useThemeStore();
+  const isDark = theme === "dark";
   const { data: logs, isLoading } = useListAuditLogs({ limit: 100 });
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Audit Logs</h1>
+      <div className="animate-fade-in-up">
+        <h1 className={`text-2xl font-bold tracking-tight ${isDark ? "shimmer-text" : "text-foreground"}`}>Audit Logs</h1>
         <p className="text-sm text-muted-foreground mt-0.5">Complete immutable record of all treasury operations</p>
       </div>
 
-      <div className="bg-card border border-border rounded-xl overflow-hidden">
+      <div className={`border rounded-xl overflow-hidden animate-fade-in-up ${isDark ? "glass-card" : "bg-white border-border shadow-sm"}`} style={{ animationDelay: "60ms" }}>
         {isLoading ? (
           <div className="p-5 space-y-3">{Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-12" />)}</div>
         ) : logs?.length === 0 ? (
@@ -50,7 +53,7 @@ export default function AuditLogs() {
               try { parsedMeta = JSON.parse(log.metadata ?? "{}"); } catch {}
 
               return (
-                <div key={log.id} className="px-5 py-3.5 flex items-start gap-4 hover:bg-secondary/30 transition-colors">
+                <div key={log.id} className={`px-5 py-3.5 flex items-start gap-4 transition-colors ${isDark ? "hover:bg-white/5" : "hover:bg-secondary/40"}`}>
                   <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 bg-secondary/50 mt-0.5">
                     <Icon className={`w-3.5 h-3.5 ${meta.color}`} />
                   </div>
