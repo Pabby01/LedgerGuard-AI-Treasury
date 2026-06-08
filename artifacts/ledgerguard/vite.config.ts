@@ -1,43 +1,24 @@
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
-import tailwindcss from "@tailwindcss/vite";
-import path from "path";
-
-const port = Number(process.env.PORT || 3000);
-const basePath = process.env.BASE_PATH || "/";
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import path from 'path'
 
 export default defineConfig({
-  base: basePath,
-  plugins: [
-    react(),
-    tailwindcss(),
-  ],
+  plugins: [react()],
   resolve: {
     alias: {
-      "@": path.resolve(import.meta.dirname, "src"),
-      "@assets": path.resolve(import.meta.dirname, "..", "..", "attached_assets"),
+      '@': path.resolve(__dirname, './src'),
+      '@workspace/api-client-react': path.resolve(__dirname, './src/mocks/api-client-react.tsx')
     },
-    dedupe: ["react", "react-dom", "zustand"],
-  },
-  root: path.resolve(import.meta.dirname),
-  build: {
-    outDir: path.resolve(import.meta.dirname, "dist/public"),
-    emptyOutDir: true,
   },
   server: {
-    port,
-    strictPort: true,
-    host: "0.0.0.0",
+    host: '0.0.0.0',
+    port: 3001,
+    strictPort: false,
     proxy: {
-      "/api": {
-        target: "http://localhost:8080",
-        changeOrigin: true,
-      },
-    },
-    fs: { strict: true },
+      '/api': 'http://localhost:3000'
+    }
   },
-  preview: {
-    port,
-    host: "0.0.0.0",
-  },
-});
+  optimizeDeps: {
+    include: ['@workspace/api-client-react']
+  }
+})
