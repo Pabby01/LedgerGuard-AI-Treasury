@@ -107,6 +107,15 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const [isConnecting, setIsConnecting] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  // Debug wallet provider initialization
+  useEffect(() => {
+    console.log("Wallet hook state:", {
+      wallet: wallet ? { status: wallet.status, address: wallet.session?.account.address.toString() } : null,
+      connectorsCount: connectors?.all?.length || 0,
+      actionsAvailable: !!actions,
+    });
+  }, [wallet, connectors, actions]);
+
   useEffect(() => {
     if (me?.address) {
       setStoreAddress(me.address);
@@ -116,16 +125,28 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   }, [me, setStoreAddress]);
 
   const handleSignIn = async () => {
+    // Log current state for debugging
+    console.log("handleSignIn called with:", { 
+      wallet: wallet?.status, 
+      connectorsAvailable: connectors?.all?.length,
+      actionsAvailable: !!actions 
+    });
+
     // Defensive checks: connectors/actions may not be ready immediately from provider
     if (!connectors || !connectors.all || connectors.all.length === 0) {
-      console.warn("Wallet connectors not available", { connectors, wallet, actions });
-      toast.error("No wallet connector found. Install or enable a Solana wallet (Phantom, Solflare, Backpack, MetaMask, or other Wallet Standard-compatible wallet).");
+      console.error("Wallet provider not initialized!", { 
+        connectors, 
+        wallet, 
+        actions,
+        walletStatus: wallet?.status 
+      });
+      toast.error("Wallet provider not initialized. Try refreshing the page or check your browser console.");
       return;
     }
 
     if (!actions || typeof actions.connectWallet !== "function") {
       console.error("Wallet actions unavailable", { actions });
-      toast.error("Wallet actions unavailable. Ensure the wallet provider is loaded.");
+      toast.error("Wallet actions not available. Ensure the Solana provider is loaded.");
       return;
     }
 
@@ -141,7 +162,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         await actions.connectWallet(connector.id);
       } catch (err) {
         console.error("connectWallet failed", err);
-        toast.error("Failed to connect wallet");
+        toast.error(`Failed to connect wallet: ${(err as any)?.message || 'Unknown error'}`);
         setIsConnecting(false);
         return;
       }

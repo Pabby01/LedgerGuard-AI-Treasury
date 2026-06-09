@@ -25,16 +25,49 @@ const queryClient = new QueryClient({
   },
 });
 
+// Initialize wallet connectors safely with error handling
+const getWalletConnectors = () => {
+  const connectors = [];
+  
+  // Add explicit wallets with error handling
+  try {
+    connectors.push(...phantom());
+  } catch (e) {
+    console.warn("Failed to load Phantom connector", e);
+  }
+  
+  try {
+    connectors.push(...solflare());
+  } catch (e) {
+    console.warn("Failed to load Solflare connector", e);
+  }
+  
+  try {
+    connectors.push(...backpack());
+  } catch (e) {
+    console.warn("Failed to load Backpack connector", e);
+  }
+  
+  try {
+    connectors.push(...metamask());
+  } catch (e) {
+    console.warn("Failed to load MetaMask connector", e);
+  }
+  
+  // Always add auto-discover as fallback
+  try {
+    connectors.push(...autoDiscover());
+  } catch (e) {
+    console.warn("Failed to load auto-discover connectors", e);
+  }
+  
+  console.log("Initialized wallet connectors:", connectors.length, connectors.map(c => c.id || c.name || 'unknown'));
+  return connectors;
+};
+
 const solanaClient = createClient({
   endpoint: "https://api.devnet.solana.com",
-  // Explicitly include popular wallets + auto-discover for any others
-  walletConnectors: [
-    ...phantom(),
-    ...solflare(),
-    ...backpack(),
-    ...metamask(),
-    ...autoDiscover(),
-  ],
+  walletConnectors: getWalletConnectors(),
 });
 
 function ThemeProvider({ children }: { children: React.ReactNode }) {
