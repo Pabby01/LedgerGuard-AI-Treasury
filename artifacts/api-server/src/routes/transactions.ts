@@ -22,6 +22,7 @@ import { Connection, PublicKey, SystemProgram, Transaction, LAMPORTS_PER_SOL, se
 import { assessRisk } from "../lib/risk-engine";
 import { serializeList, serializeDates } from "../lib/serialize";
 import { requireAuth } from "../middlewares/auth";
+import { issuePayloadChallenge, validatePayloadChallenge, writeRateLimiter } from "../middlewares/security";
 import { logger } from "../lib/logger";
 
 const router = Router();
@@ -29,6 +30,7 @@ const router = Router();
 const getRpcUrl = () => process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com";
 
 router.use(requireAuth);
+router.use(writeRateLimiter);
 
 router.get("/transactions", async (req, res): Promise<void> => {
   const query = ListTransactionsQueryParams.safeParse(req.query);
@@ -172,6 +174,7 @@ router.post("/transactions/:id/simulate", async (req, res): Promise<void> => {
   }
 
   try {
+    const challenge = issuePayloadChallenge(req.session, txn.id);
     const connection = new Connection(getRpcUrl(), "confirmed");
     const fromPubkey = new PublicKey(txn.fromWalletAddress || "11111111111111111111111111111111");
     const toPubkey = new PublicKey(txn.recipient);
@@ -259,6 +262,8 @@ router.get("/transactions/:id/payload", async (req, res): Promise<void> => {
       unsignedTransactionSerialized: unsignedTxBase64,
       requiredSigners: [fromPubkey.toBase58()],
       recentBlockhash: blockhash,
+      payloadToken: challenge.token,
+      payloadExpiresAt: new Date(challenge.expiresAt).toISOString(),
     });
   } catch (err) {
     req.log.error({ err }, "Failed to build unsigned payload");
@@ -288,6 +293,17 @@ router.post("/transactions/:id/broadcast", async (req, res): Promise<void> => {
 
   if (!txn) {
     res.status(404).json({ error: "Transaction not found" });
+    return;
+  }
+
+  if (txn.status === "broadcast" || txn.status === "confirmed") {
+    res.status(409).json({ error: "Transaction already broadcast" });
+    return;
+  }
+
+  const challengeCheck = validatePayloadChallenge(req.session, txn.id, body.data.payloadToken);
+  if (!challengeCheck.ok) {
+    res.status(409).json({ error: challengeCheck.reason });
     return;
   }
 

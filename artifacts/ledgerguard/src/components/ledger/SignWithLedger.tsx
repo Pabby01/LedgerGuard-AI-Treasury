@@ -104,7 +104,7 @@ export default function SignWithLedger({ txId, fromAddress, onComplete }: { txId
       const bresp = await fetch(`/api/transactions/${txId}/broadcast`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ signedTransaction: signedBase64 }),
+        body: JSON.stringify({ signedTransaction: signedBase64, payloadToken: payload.payloadToken }),
       });
       if (!bresp.ok) {
         const txt = await bresp.text();

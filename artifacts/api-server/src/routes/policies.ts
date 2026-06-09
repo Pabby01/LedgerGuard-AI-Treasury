@@ -14,11 +14,16 @@ import {
 import { validateAgainstPolicies } from "../lib/policy-engine";
 import { serializeList, serializeDates } from "../lib/serialize";
 import { requireAuth } from "../middlewares/auth";
+import { requireRole, writeRateLimiter } from "../middlewares/security";
 import { logger } from "../lib/logger";
 
 const router = Router();
 
 router.use(requireAuth);
+router.use(writeRateLimiter);
+router.post("/policies", requireRole("admin"));
+router.patch("/policies/:id", requireRole("admin"));
+router.delete("/policies/:id", requireRole("admin"));
 
 router.get("/policies", async (_req, res): Promise<void> => {
   const policies = await db.select().from(policiesTable).orderBy(policiesTable.createdAt);

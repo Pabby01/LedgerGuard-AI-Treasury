@@ -10,10 +10,12 @@ import {
 import OpenAI from "openai";
 import { serializeList, serializeDates } from "../lib/serialize";
 import { requireAuth } from "../middlewares/auth";
+import { aiRateLimiter } from "../middlewares/security";
 
 const router = Router();
 
 router.use(requireAuth);
+router.use(aiRateLimiter);
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 

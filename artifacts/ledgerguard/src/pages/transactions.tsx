@@ -78,6 +78,7 @@ function TxDetailModal({ tx, open, onClose }: { tx: Tx | null; open: boolean; on
   const { data: risk } = useGetTransactionRisk();
   const updateTx = useUpdateTransaction() as any;
   const queryClient = useQueryClient();
+  const [, setPayloadToken] = useState<string | null>(null);
 
   if (!tx) return null;
 
@@ -99,6 +100,7 @@ function TxDetailModal({ tx, open, onClose }: { tx: Tx | null; open: boolean; on
       const resp = await fetch(`/api/transactions/${tx.id}/payload`);
       if (!resp.ok) throw new Error(`Failed to get payload: ${resp.statusText}`);
       const data = await resp.json();
+      setPayloadToken(data.payloadToken ?? null);
       const blob = new Blob([data.unsignedTransaction], { type: "text/plain" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -117,11 +119,16 @@ function TxDetailModal({ tx, open, onClose }: { tx: Tx | null; open: boolean; on
   const uploadSignedFile = async (file: File | null) => {
     if (!file) return;
     try {
+      const payloadResp = await fetch(`/api/transactions/${tx.id}/payload`);
+      if (!payloadResp.ok) throw new Error(`Failed to get payload: ${payloadResp.statusText}`);
+      const payload = await payloadResp.json();
+      setPayloadToken(payload.payloadToken ?? null);
+
       const text = await file.text();
       const resp = await fetch(`/api/transactions/${tx.id}/broadcast`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ signedTransaction: text.trim() }),
+        body: JSON.stringify({ signedTransaction: text.trim(), payloadToken: payload.payloadToken }),
       });
       if (!resp.ok) {
         const body = await resp.text();

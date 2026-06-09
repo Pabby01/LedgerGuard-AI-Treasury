@@ -210,7 +210,8 @@ export const BroadcastTransactionParams = zod.object({
 })
 
 export const BroadcastTransactionBody = zod.object({
-  "signedTransaction": zod.string()
+  "signedTransaction": zod.string(),
+  "payloadToken": zod.string()
 })
 
 export const BroadcastTransactionResponse = zod.object({

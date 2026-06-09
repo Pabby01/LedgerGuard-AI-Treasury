@@ -4,8 +4,11 @@ import nacl from "tweetnacl";
 import { PublicKey } from "@solana/web3.js";
 import bs58 from "bs58";
 import { SignInBody, GetNonceResponse, GetMeResponse } from "@workspace/api-zod";
+import { authRateLimiter, resolveRoleForWallet } from "../middlewares/security";
 
 const router = Router();
+
+router.use(authRateLimiter);
 
 // Extend session type for TS
 declare module "express-session" {
@@ -18,6 +21,7 @@ declare module "express-session" {
 router.get("/auth/nonce", (req, res) => {
   const nonce = crypto.randomBytes(16).toString("hex");
   req.session.nonce = nonce;
+  req.session.nonceIssuedAt = Date.now();
   res.json(GetNonceResponse.parse({ nonce }));
 });
 
@@ -33,6 +37,13 @@ router.post("/auth/signin", async (req, res) => {
   // Verify nonce is in the message
   if (!req.session.nonce || !message.includes(req.session.nonce)) {
     res.status(401).json({ error: "Invalid nonce in message" });
+    return;
+  }
+
+  if (req.session.nonceIssuedAt && Date.now() - req.session.nonceIssuedAt > 10 * 60 * 1000) {
+    delete req.session.nonce;
+    delete req.session.nonceIssuedAt;
+    res.status(401).json({ error: "Nonce expired" });
     return;
   }
 
@@ -53,6 +64,9 @@ router.post("/auth/signin", async (req, res) => {
     }
 
     req.session.walletAddress = pubKey.toBase58();
+    req.session.role = resolveRoleForWallet(req.session.walletAddress);
+    delete req.session.nonce;
+    delete req.session.nonceIssuedAt;
     res.json({ status: "ok" });
   } catch (err) {
     res.status(401).json({ error: "Verification failed" });
