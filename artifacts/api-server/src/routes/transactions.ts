@@ -207,6 +207,61 @@ router.post("/transactions/:id/simulate", async (req, res): Promise<void> => {
   }
 });
 
+// Generate unsigned signable payload for external signing (Ledger / Wallet CLI / DMK)
+router.get("/transactions/:id/payload", async (req, res): Promise<void> => {
+  const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const idParam = parseInt(raw, 10);
+  if (Number.isNaN(idParam)) {
+    res.status(400).json({ error: "Invalid transaction id" });
+    return;
+  }
+
+  const [txn] = await db
+    .select()
+    .from(transactionsTable)
+    .where(eq(transactionsTable.id, idParam))
+    .limit(1);
+
+  if (!txn) {
+    res.status(404).json({ error: "Transaction not found" });
+    return;
+  }
+
+  try {
+    const connection = new Connection(getRpcUrl(), "confirmed");
+    const fromPubkey = new PublicKey(txn.fromWalletAddress || "11111111111111111111111111111111");
+    const toPubkey = new PublicKey(txn.recipient);
+    const lamports = Math.floor(txn.amount * LAMPORTS_PER_SOL);
+
+    const { blockhash } = await connection.getLatestBlockhash();
+    const transaction = new Transaction({
+      recentBlockhash: blockhash,
+      feePayer: fromPubkey,
+    }).add(
+      SystemProgram.transfer({ fromPubkey, toPubkey, lamports })
+    );
+
+    // Serialize the message (unsigned) so external signer can sign the canonical payload
+    const messageBytes = transaction.serializeMessage();
+    const unsignedBase64 = Buffer.from(messageBytes).toString("base64");
+
+    await db.insert(auditLogsTable).values({
+      event: "TRANSACTION_EXPORT_UNSIGNED",
+      metadata: JSON.stringify({ id: txn.id, exportedAt: new Date().toISOString() }),
+      walletAddress: txn.fromWalletAddress ?? undefined,
+    });
+
+    res.json({
+      unsignedTransaction: unsignedBase64,
+      requiredSigners: [fromPubkey.toBase58()],
+      recentBlockhash: blockhash,
+    });
+  } catch (err) {
+    req.log.error({ err }, "Failed to build unsigned payload");
+    res.status(502).json({ error: "Failed to build unsigned payload" });
+  }
+});
+
 router.post("/transactions/:id/broadcast", async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const params = BroadcastTransactionParams.safeParse({ id: parseInt(raw, 10) });

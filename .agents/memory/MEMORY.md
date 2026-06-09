@@ -1,5 +1,0 @@
-- [Drizzle date serialization](drizzle-date-serialization.md) — Drizzle returns Date objects; Orval-generated Zod schemas use zod.string() for dates. Must serialize before .parse().
-- [Solana wallet adapter blocked](solana-wallet-adapter.md) — @solana/wallet-adapter-* packages blocked by firewall; use custom Zustand store + manual address input instead.
-- [OpenAI direct SDK](openai-direct.md) — User uses OPENAI_API_KEY env var directly (not Replit AI proxy) because they declined the paid tier upgrade.
-- [Theme system](theme-system.md) — useThemeStore (Zustand persist) + ThemeProvider in App.tsx; `.dark` class on `<html>` drives all CSS variables.
-- [Mobile layout pattern](mobile-layout.md) — sidebar is fixed/slide-in drawer on mobile; bottom nav (5 tabs) fixed at bottom; hamburger in topbar; `pb-20 md:pb-8` on main for clearance.

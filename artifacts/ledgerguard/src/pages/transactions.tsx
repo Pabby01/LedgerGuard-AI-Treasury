@@ -93,6 +93,49 @@ function TxDetailModal({ tx, open, onClose }: { tx: Tx | null; open: boolean; on
     );
   };
 
+  const downloadUnsignedPayload = async () => {
+    try {
+      const resp = await fetch(`/api/transactions/${tx.id}/payload`);
+      if (!resp.ok) throw new Error(`Failed to get payload: ${resp.statusText}`);
+      const data = await resp.json();
+      const blob = new Blob([data.unsignedTransaction], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `transaction-${tx.id}.unsigned.txt`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to download unsigned payload. See console for details.");
+    }
+  };
+
+  const uploadSignedFile = async (file: File | null) => {
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const resp = await fetch(`/api/transactions/${tx.id}/broadcast`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ signedTransaction: text.trim() }),
+      });
+      if (!resp.ok) {
+        const body = await resp.text();
+        throw new Error(body || resp.statusText);
+      }
+      const json = await resp.json();
+      alert(`Broadcast success: ${json.signature}`);
+      onClose();
+    } catch (err) {
+      console.error(err);
+      alert("Failed to upload signed transaction. See console for details.");
+    }
+  };
+
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-lg bg-card border-border">
@@ -177,6 +220,20 @@ function TxDetailModal({ tx, open, onClose }: { tx: Tx | null; open: boolean; on
               <Button size="sm" variant="destructive" onClick={handleReject} disabled={updateTx.isPending} className="gap-1.5 flex-1">
                 <XCircle className="w-3.5 h-3.5" /> Reject
               </Button>
+            </div>
+          )}
+          {(tx.status === "approved" || tx.status === "pending") && (
+            <div className="flex flex-col gap-2 pt-2 border-t border-border">
+              <div className="flex gap-2">
+                <Button size="sm" onClick={downloadUnsignedPayload} className="gap-1.5">
+                  Download unsigned payload
+                </Button>
+                <label className="inline-flex items-center gap-2">
+                  <input type="file" accept=".txt,.base64,.b64" style={{ display: "none" }} onChange={(e) => uploadSignedFile(e.target.files?.[0] ?? null)} />
+                  <Button size="sm" variant="outline" className="gap-1.5">Upload signed transaction</Button>
+                </label>
+              </div>
+              <p className="text-xs text-muted-foreground">Tip: use the Ledger DMK / Wallet CLI or Speculos to sign the downloaded payload, then upload the signed base64 file here to broadcast.</p>
             </div>
           )}
         </div>
