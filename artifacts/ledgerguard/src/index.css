@@ -4,6 +4,40 @@
 
 @layer base {
   :root {
+    color-scheme: light;
+    --background: 220 35% 98%;
+    --foreground: 224 33% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 224 33% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 224 33% 11%;
+    --primary: 265 90% 68%;
+    --primary-foreground: 224 33% 11%;
+    --secondary: 220 18% 93%;
+    --secondary-foreground: 224 33% 11%;
+    --muted: 220 18% 95%;
+    --muted-foreground: 220 10% 45%;
+    --accent: 188 85% 55%;
+    --accent-foreground: 224 33% 11%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 220 14% 86%;
+    --input: 220 14% 86%;
+    --ring: 265 90% 68%;
+    --radius: 0.9rem;
+    --page-background:
+      radial-gradient(circle at top left, rgba(109, 40, 255, 0.08), transparent 28%),
+      radial-gradient(circle at 82% 0%, rgba(34, 211, 238, 0.08), transparent 20%),
+      linear-gradient(180deg, #f8fbff 0%, #edf2ff 54%, #f8fafc 100%);
+    --glass-card-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.84), rgba(248, 250, 252, 0.72));
+    --glass-panel-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(242, 245, 250, 0.78));
+    --glass-border: rgba(148, 163, 184, 0.24);
+    --glass-shadow: 0 24px 60px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.68);
+    --noise-opacity: 0.22;
+  }
+
+  .dark {
+    color-scheme: dark;
     --background: 222 47% 5%;
     --foreground: 210 40% 98%;
     --card: 223 47% 7%;
@@ -24,22 +58,25 @@
     --input: 223 18% 20%;
     --ring: 265 90% 68%;
     --radius: 0.9rem;
-  }
-
-  html {
-    background:
+    --page-background:
       radial-gradient(circle at top left, rgba(109, 40, 255, 0.22), transparent 30%),
       radial-gradient(circle at 80% 10%, rgba(34, 211, 238, 0.12), transparent 22%),
       linear-gradient(180deg, #07080d 0%, #0b1020 55%, #090b12 100%);
+    --glass-card-bg: linear-gradient(180deg, rgba(15, 19, 32, 0.82), rgba(9, 11, 20, 0.68));
+    --glass-panel-bg: linear-gradient(180deg, rgba(12, 15, 25, 0.9), rgba(8, 10, 17, 0.72));
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --glass-shadow: 0 20px 60px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    --noise-opacity: 0.35;
+  }
+
+  html {
+    background: hsl(var(--background));
   }
 
   body {
     min-height: 100vh;
     color: hsl(var(--foreground));
-    background:
-      radial-gradient(circle at 20% 20%, rgba(109, 40, 255, 0.08), transparent 26%),
-      radial-gradient(circle at 80% 0%, rgba(34, 211, 238, 0.08), transparent 18%),
-      linear-gradient(180deg, #06070c 0%, #0a0d16 48%, #06070c 100%);
+    background: var(--page-background);
     font-feature-settings: "ss01" 1, "cv03" 1;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
@@ -52,17 +89,15 @@
 
 @layer utilities {
   .glass-card {
-    background: linear-gradient(180deg, rgba(15, 19, 32, 0.82), rgba(9, 11, 20, 0.68));
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow:
-      0 20px 60px rgba(0, 0, 0, 0.28),
-      inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    background: var(--glass-card-bg);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
     backdrop-filter: blur(24px);
   }
 
   .glass-panel {
-    background: linear-gradient(180deg, rgba(12, 15, 25, 0.9), rgba(8, 10, 17, 0.72));
-    border-right: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--glass-panel-bg);
+    border-right: 1px solid var(--glass-border);
     backdrop-filter: blur(24px);
   }
 
@@ -108,6 +143,7 @@
       linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
       linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
     background-size: 22px 22px;
+    opacity: var(--noise-opacity);
     mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.28), rgba(0, 0, 0, 0.02));
   }
 }

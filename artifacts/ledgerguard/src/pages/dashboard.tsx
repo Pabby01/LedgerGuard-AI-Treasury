@@ -91,7 +91,7 @@ export default function Dashboard() {
             <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
               <Shield className="h-3.5 w-3.5" /> Treasury command center
             </div>
-            <h1 className={`mt-3 text-3xl font-semibold tracking-tight sm:text-4xl ${isDark ? "shimmer-text" : "text-foreground"}`}>
+            <h1 className={`mt-3 text-3xl font-semibold tracking-tight sm:text-4xl ${isDark ? "shimmer-text" : "gradient-text-light"}`}>
               Treasury Dashboard
             </h1>
             <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">

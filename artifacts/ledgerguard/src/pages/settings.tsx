@@ -34,7 +34,7 @@ export default function Settings() {
   return (
     <div className="space-y-6 max-w-2xl">
       <div className="animate-fade-in-up">
-        <h1 className={`text-2xl font-bold tracking-tight ${isDark ? "shimmer-text" : "text-foreground"}`}>Settings</h1>
+        <h1 className={`text-2xl font-bold tracking-tight ${isDark ? "shimmer-text" : "gradient-text-light"}`}>Settings</h1>
         <p className="text-sm text-muted-foreground mt-0.5">Configure your LedgerGuard treasury environment</p>
       </div>
 

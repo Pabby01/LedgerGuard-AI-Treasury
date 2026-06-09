@@ -35,7 +35,7 @@ export default function AuditLogs() {
   return (
     <div className="space-y-5">
       <div className="animate-fade-in-up">
-        <h1 className={`text-2xl font-bold tracking-tight ${isDark ? "shimmer-text" : "text-foreground"}`}>Audit Logs</h1>
+        <h1 className={`text-2xl font-bold tracking-tight ${isDark ? "shimmer-text" : "gradient-text-light"}`}>Audit Logs</h1>
         <p className="text-sm text-muted-foreground mt-0.5">Complete immutable record of all treasury operations</p>
       </div>
 

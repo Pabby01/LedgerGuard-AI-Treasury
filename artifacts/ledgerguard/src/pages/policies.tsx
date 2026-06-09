@@ -65,7 +65,7 @@ export default function Policies() {
     <div className="space-y-5">
       <div className="flex items-center justify-between animate-fade-in-up">
         <div>
-          <h1 className={`text-2xl font-bold tracking-tight ${isDark ? "shimmer-text" : "text-foreground"}`}>Treasury Policies</h1>
+          <h1 className={`text-2xl font-bold tracking-tight ${isDark ? "shimmer-text" : "gradient-text-light"}`}>Treasury Policies</h1>
           <p className="text-sm text-muted-foreground mt-0.5">Guardrails that every transaction must pass before execution</p>
         </div>
         <Button size="sm" onClick={() => setShowCreate(true)} className="gap-1.5">

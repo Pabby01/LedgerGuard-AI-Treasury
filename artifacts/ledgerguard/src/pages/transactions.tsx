@@ -314,7 +314,7 @@ export default function Transactions() {
             <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
               <ShieldCheck className="w-3.5 h-3.5" /> Treasury workflow
             </div>
-            <h1 className={`mt-3 text-2xl font-bold tracking-tight sm:text-3xl ${isDark ? "shimmer-text" : "text-foreground"}`}>Transactions</h1>
+            <h1 className={`mt-3 text-2xl font-bold tracking-tight sm:text-3xl ${isDark ? "shimmer-text" : "gradient-text-light"}`}>Transactions</h1>
             <p className="mt-1 max-w-xl text-sm text-muted-foreground">
               Review approvals, sign with Ledger, and broadcast from a single command center.
             </p>

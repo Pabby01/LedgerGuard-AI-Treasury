@@ -177,11 +177,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div className={`flex min-h-screen ${isDark ? "bg-[#0a0a0c] text-slate-200" : "bg-slate-50 text-slate-900"}`}>
+    <div className="flex min-h-screen bg-background text-foreground">
       {/* Desktop Sidebar */}
       <aside className={`
         hidden lg:flex flex-col w-64 border-r border-border transition-all duration-300
-        ${isDark ? "glass-panel" : "bg-white shadow-sm"}
+        glass-panel
       `}>
         <SidebarContent location={location} />
       </aside>
@@ -197,7 +197,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       {/* Mobile Sidebar */}
       <aside className={`
         fixed top-0 bottom-0 left-0 z-50 w-72 transform transition-transform duration-300 ease-in-out lg:hidden
-        ${isDark ? "glass-panel" : "bg-white"}
+        glass-panel
         ${isMobileMenuOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full"}
       `}>
         <SidebarContent location={location} onNavClick={() => setIsMobileMenuOpen(false)} />
@@ -207,7 +207,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         {/* Topbar */}
         <header className={`
           h-16 flex items-center justify-between px-4 lg:px-8 border-b border-border sticky top-0 z-30 backdrop-blur-md
-          ${isDark ? "bg-[#0a0a0c]/80" : "bg-white/80"}
+          bg-background/80
         `}>
           <div className="flex items-center gap-4">
             <Button
@@ -285,8 +285,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         {/* Page Content */}
         <main className="flex-1 p-4 lg:p-8 overflow-x-hidden relative">
           {/* Subtle background glow */}
-          <div className="fixed top-1/4 right-1/4 w-96 h-96 bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
-          <div className="fixed bottom-1/4 left-1/4 w-64 h-64 bg-accent/5 rounded-full blur-[100px] pointer-events-none" />
+          <div className={`fixed top-1/4 right-1/4 w-96 h-96 rounded-full blur-[120px] pointer-events-none ${isDark ? "bg-primary/5" : "bg-primary/10"}`} />
+          <div className={`fixed bottom-1/4 left-1/4 w-64 h-64 rounded-full blur-[100px] pointer-events-none ${isDark ? "bg-accent/5" : "bg-accent/10"}`} />
           
           <div className="relative z-10">
             {children}

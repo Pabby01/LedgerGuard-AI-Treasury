@@ -55,7 +55,7 @@ export default function Analytics() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       <div className="animate-fade-in-up">
-        <h1 className={`text-2xl font-bold tracking-tight ${isDark ? "shimmer-text" : "text-foreground"}`}>
+        <h1 className={`text-2xl font-bold tracking-tight ${isDark ? "shimmer-text" : "gradient-text-light"}`}>
           Treasury Analytics
         </h1>
         <p className="text-sm text-muted-foreground mt-0.5">Spending patterns, runway, and treasury health metrics</p>

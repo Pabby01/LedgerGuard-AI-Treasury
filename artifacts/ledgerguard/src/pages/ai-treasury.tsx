@@ -162,7 +162,7 @@ export default function AiTreasury() {
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)]">
       <div className="mb-4 animate-fade-in-up">
-        <h1 className={`text-2xl font-bold tracking-tight ${isDark ? "shimmer-text" : "text-foreground"}`}>AI Treasury Assistant</h1>
+        <h1 className={`text-2xl font-bold tracking-tight ${isDark ? "shimmer-text" : "gradient-text-light"}`}>AI Treasury Assistant</h1>
         <p className="text-sm text-muted-foreground mt-0.5">Chat with your AI treasury advisor. AI proposes, Ledger authorizes.</p>
       </div>
 
