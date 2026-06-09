@@ -139,7 +139,7 @@ function TxDetailModal({ tx, open, onClose }: { tx: Tx | null; open: boolean; on
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-4xl bg-card border-border overflow-hidden p-0">
+      <DialogContent className="sm:max-w-5xl overflow-hidden border-border p-0 glass-card bg-background/95">
         <DialogHeader>
           <div className="relative border-b border-border bg-gradient-to-br from-primary/10 via-transparent to-transparent px-5 py-5 sm:px-6">
             <div className="absolute inset-0 opacity-60 pointer-events-none" aria-hidden>
@@ -162,19 +162,19 @@ function TxDetailModal({ tx, open, onClose }: { tx: Tx | null; open: boolean; on
         <div className="grid gap-0 lg:grid-cols-[1.1fr_0.9fr] text-sm">
           <div className="space-y-4 p-5 sm:p-6 lg:border-r lg:border-border">
             <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-xl border border-border bg-secondary/30 p-3">
+              <div className="rounded-xl border border-border bg-background/80 backdrop-blur-sm p-3 shadow-sm">
                 <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Status</p>
                 <div className="mt-2"><StatusBadge status={tx.status} /></div>
               </div>
-              <div className="rounded-xl border border-border bg-secondary/30 p-3">
+              <div className="rounded-xl border border-border bg-background/80 backdrop-blur-sm p-3 shadow-sm">
                 <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Risk</p>
                 <div className="mt-2"><RiskBadge score={tx.riskScore} level={tx.riskLevel} /></div>
               </div>
-              <div className="rounded-xl border border-border bg-secondary/30 p-3">
+              <div className="rounded-xl border border-border bg-background/80 backdrop-blur-sm p-3 shadow-sm">
                 <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Network</p>
                 <p className="mt-2 font-mono text-xs">{tx.network}</p>
               </div>
-              <div className="rounded-xl border border-border bg-secondary/30 p-3">
+              <div className="rounded-xl border border-border bg-background/80 backdrop-blur-sm p-3 shadow-sm">
                 <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Amount</p>
                 <p className="mt-2 font-bold">{tx.amount} {tx.token}</p>
               </div>
@@ -229,8 +229,8 @@ function TxDetailModal({ tx, open, onClose }: { tx: Tx | null; open: boolean; on
             )}
           </div>
 
-          <div className="space-y-4 bg-gradient-to-b from-secondary/30 to-transparent p-5 sm:p-6">
-            <div className="rounded-2xl border border-border bg-background/80 p-4 shadow-sm">
+          <div className="space-y-4 bg-gradient-to-b from-secondary/20 to-transparent p-5 sm:p-6">
+            <div className="rounded-2xl border border-border bg-background/90 p-4 shadow-sm backdrop-blur-sm">
               <div className="flex items-center gap-2 text-sm font-semibold">
                 <ShieldCheck className="w-4 h-4 text-primary" />
                 Signing Workflow
@@ -282,7 +282,7 @@ function TxDetailModal({ tx, open, onClose }: { tx: Tx | null; open: boolean; on
               )}
             </div>
 
-            <div className="rounded-2xl border border-border bg-background/80 p-4">
+            <div className="rounded-2xl border border-border bg-background/90 p-4 shadow-sm backdrop-blur-sm">
               <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Broadcast Tip</p>
               <p className="mt-2 text-xs leading-6 text-muted-foreground">
                 Download the unsigned payload, sign it with Ledger DMK, Wallet CLI, or Speculos, then upload the signed transaction here to finalize the broadcast.

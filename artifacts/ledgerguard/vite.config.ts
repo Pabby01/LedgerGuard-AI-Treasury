@@ -16,7 +16,7 @@ export default defineConfig({
     port: 3001,
     strictPort: false,
     proxy: {
-      '/api': 'http://localhost:3000'
+      '/api': 'http://localhost:8080'
     }
   },
   optimizeDeps: {
