@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Transaction, PublicKey } from "@solana/web3.js";
 import { useToast } from "@/hooks/use-toast";
 
@@ -6,7 +6,7 @@ export default function SignWithLedger({ txId, fromAddress, onComplete }: { txId
   const [busy, setBusy] = useState(false);
   const [derivationPath, setDerivationPath] = useState("44'/501'/0'/0'");
   const [devicePubkey, setDevicePubkey] = useState<string | null>(null);
-  const toast = useToast();
+  const toastApi = useToast();
 
   const getDevicePubkey = async (sol: any, path: string) => {
     try {
@@ -15,7 +15,6 @@ export default function SignWithLedger({ txId, fromAddress, onComplete }: { txId
       const pubkeyBuf = resp?.publicKey || resp?.pubKey || resp?.public_key;
       if (pubkeyBuf) {
         const hex = Buffer.from(pubkeyBuf).toString("hex");
-        const pk = Buffer.from(pubkeyBuf).toString("base64");
         return { hex, base58: new PublicKey(pubkeyBuf).toBase58(), raw: pubkeyBuf };
       }
       return null;
@@ -26,7 +25,7 @@ export default function SignWithLedger({ txId, fromAddress, onComplete }: { txId
 
   const handleSign = async () => {
     setBusy(true);
-    const pendingToast = toast.toast({ title: "Signing", description: "Connecting to Ledger/Speculos..." });
+    const pendingToast = toastApi.toast({ title: "Signing", description: "Connecting to Ledger/Speculos..." });
     try {
       const resp = await fetch(`/api/transactions/${txId}/payload`);
       if (!resp.ok) throw new Error(`Failed to fetch payload: ${resp.statusText}`);
@@ -64,7 +63,7 @@ export default function SignWithLedger({ txId, fromAddress, onComplete }: { txId
         setDevicePubkey(dev.base58);
         if (fromAddress && fromAddress !== "" && fromAddress !== "11111111111111111111111111111111") {
           if (dev.base58 !== fromAddress) {
-            toast.toast({ title: "Warning", description: "Ledger pubkey does not match transaction from address" });
+            toastApi.toast({ title: "Warning", description: "Ledger pubkey does not match transaction from address" });
           }
         }
       }
@@ -92,10 +91,10 @@ export default function SignWithLedger({ txId, fromAddress, onComplete }: { txId
         throw new Error(txt || bresp.statusText);
       }
       const j = await bresp.json();
-      toast.update({ ...pendingToast, title: 'Success', description: `Broadcasted: ${j.signature}` });
+      pendingToast.update({ ...pendingToast, title: 'Success', description: `Broadcasted: ${j.signature}` });
       if (onComplete) onComplete(j.signature);
     } catch (err: any) {
-      toast.update({ ...pendingToast, title: 'Error', description: String(err?.message || err) });
+      pendingToast.update({ ...pendingToast, title: 'Error', description: String(err?.message || err) });
       console.error(err);
     } finally {
       setBusy(false);

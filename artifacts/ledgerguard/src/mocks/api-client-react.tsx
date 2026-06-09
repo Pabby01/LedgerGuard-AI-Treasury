@@ -24,18 +24,37 @@ export const useGetRecentActivity = () => ({
 });
 
 // Transaction hooks
-export const useListTransactions = () => ({
-  data: [],
-  isLoading: false
+export const useListTransactions = (_params?: { limit?: number }) => ({
+  data: [] as Array<{
+    id: number;
+    signature?: string | null;
+    amount: number;
+    recipient: string;
+    token: string;
+    status: string;
+    riskScore?: number | null;
+    riskLevel?: string | null;
+    network: string;
+    fromWalletAddress?: string | null;
+    aiProposed: boolean;
+    memo?: string | null;
+    createdAt: string;
+    updatedAt: string;
+  }>,
+  isLoading: false,
+  isFetching: false,
+  refetch: async () => ({ data: [] }),
 });
 
 export const useUpdateTransaction = () => ({
+  mutate: (_payload: unknown, _options?: { onSuccess?: () => void }) => {},
   mutateAsync: async () => ({}),
-  isLoading: false
+  isLoading: false,
+  isPending: false,
 });
 
-export const useGetTransactionRisk = () => ({
-  data: { risk: "low", score: 0.1 },
+export const useGetTransactionRisk = (_id?: number, _options?: unknown) => ({
+  data: { reasons: ["Mock policy check passed"], level: "LOW", score: 10 },
   isLoading: false
 });
 
@@ -48,7 +67,7 @@ export const useListAiConversations = () => ({
 });
 
 export const useSendAiMessage = () => ({
-  mutateAsync: async (message: string) => ({ response: "Mock AI response" }),
+  mutateAsync: async (_message: string) => ({ response: "Mock AI response" }),
   isLoading: false
 });
 

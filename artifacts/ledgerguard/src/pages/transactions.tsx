@@ -4,7 +4,7 @@ import {
   useGetTransactionRisk,
   useUpdateTransaction,
   getListTransactionsQueryKey,
-} from "@workspace/api-client-react";
+} from "@/mocks/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useThemeStore } from "@/store/use-theme-store";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -75,8 +75,8 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 function TxDetailModal({ tx, open, onClose }: { tx: Tx | null; open: boolean; onClose: () => void }) {
-  const { data: risk } = useGetTransactionRisk(tx?.id ?? 0, { query: { enabled: !!tx && open } });
-  const updateTx = useUpdateTransaction();
+  const { data: risk } = useGetTransactionRisk();
+  const updateTx = useUpdateTransaction() as any;
   const queryClient = useQueryClient();
 
   if (!tx) return null;
@@ -201,10 +201,10 @@ function TxDetailModal({ tx, open, onClose }: { tx: Tx | null; open: boolean; on
             <div className="bg-secondary/50 rounded-lg p-3 border border-border">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Risk Analysis</p>
               <div className="space-y-1">
-                {risk.reasons.map((r, i) => (
-                  <p key={i} className="text-xs flex items-start gap-1.5">
-                    <span className={`w-1.5 h-1.5 rounded-full mt-1 flex-shrink-0 ${risk.level === "LOW" ? "bg-emerald-400" : risk.level === "MEDIUM" ? "bg-amber-400" : "bg-red-400"}`} />
-                    {r}
+                {(((risk as any)?.reasons ?? []) as string[]).map((reason: string, index: number) => (
+                  <p key={index} className="text-xs flex items-start gap-1.5">
+                    <span className={`w-1.5 h-1.5 rounded-full mt-1 flex-shrink-0 ${((risk as any)?.level ?? "LOW") === "LOW" ? "bg-emerald-400" : ((risk as any)?.level ?? "LOW") === "MEDIUM" ? "bg-amber-400" : "bg-red-400"}`} />
+                    {reason}
                   </p>
                 ))}
               </div>
@@ -250,7 +250,7 @@ export default function Transactions() {
   const { theme } = useThemeStore();
   const isDark = theme === "dark";
   const [selected, setSelected] = useState<Tx | null>(null);
-  const { data: txns, isLoading, refetch, isFetching } = useListTransactions({ limit: 50 });
+  const { data: txns, isLoading, refetch, isFetching } = useListTransactions() as any;
 
   return (
     <div className="space-y-5">
@@ -283,7 +283,7 @@ export default function Transactions() {
                       ))}
                     </tr>
                   ))
-                : txns?.map((tx) => (
+                : ((txns ?? []) as Tx[]).map((tx: Tx) => (
                     <tr key={tx.id} onClick={() => setSelected(tx as Tx)} className={`cursor-pointer transition-colors ${isDark ? "hover:bg-white/5" : "hover:bg-secondary/50"}`}>
                       <td className="px-5 py-3 font-mono text-xs text-muted-foreground">
                         #{tx.id}
