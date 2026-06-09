@@ -119,7 +119,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     // Defensive checks: connectors/actions may not be ready immediately from provider
     if (!connectors || !connectors.all || connectors.all.length === 0) {
       console.warn("Wallet connectors not available", { connectors, wallet, actions });
-      toast.error("No wallet connector found. Install or enable a Solana wallet (Phantom/Backpack/Backpack).");
+      toast.error("No wallet connector found. Install or enable a Solana wallet (Phantom, Solflare, Backpack, MetaMask, or other Wallet Standard-compatible wallet).");
       return;
     }
 
@@ -137,6 +137,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       }
       try {
         setIsConnecting(true);
+        console.log(`Connecting to wallet: ${connector.id}`);
         await actions.connectWallet(connector.id);
       } catch (err) {
         console.error("connectWallet failed", err);

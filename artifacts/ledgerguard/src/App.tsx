@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { SolanaProvider } from "@solana/react-hooks";
-import { createClient, autoDiscover } from "@solana/client";
+import { createClient, autoDiscover, phantom, solflare, backpack, metamask } from "@solana/client";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppLayout } from "@/components/layout/app-layout";
@@ -27,7 +27,14 @@ const queryClient = new QueryClient({
 
 const solanaClient = createClient({
   endpoint: "https://api.devnet.solana.com",
-  walletConnectors: autoDiscover(),
+  // Explicitly include popular wallets + auto-discover for any others
+  walletConnectors: [
+    ...phantom(),
+    ...solflare(),
+    ...backpack(),
+    ...metamask(),
+    ...autoDiscover(),
+  ],
 });
 
 function ThemeProvider({ children }: { children: React.ReactNode }) {
