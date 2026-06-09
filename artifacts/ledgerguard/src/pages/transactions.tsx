@@ -11,6 +11,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ExternalLink, CheckCircle, XCircle, RefreshCw, Bot } from "lucide-react";
+import dynamic from "next/dynamic";
+
+const SignWithLedger = dynamic(() => import("@/components/ledger/SignWithLedger"), { ssr: false });
 
 type Tx = {
   id: number; signature?: string | null; amount: number; recipient: string;
@@ -213,7 +216,7 @@ function TxDetailModal({ tx, open, onClose }: { tx: Tx | null; open: boolean; on
           <div className="text-xs text-muted-foreground">Created: {new Date(tx.createdAt).toLocaleString()}</div>
 
           {tx.status === "pending" && (
-            <div className="flex gap-2 pt-2 border-t border-border">
+              <div className="flex gap-2 pt-2 border-t border-border">
               <Button size="sm" onClick={handleApprove} disabled={updateTx.isPending} className="gap-1.5 flex-1">
                 <CheckCircle className="w-3.5 h-3.5" /> Approve
               </Button>
@@ -232,6 +235,9 @@ function TxDetailModal({ tx, open, onClose }: { tx: Tx | null; open: boolean; on
                   <input type="file" accept=".txt,.base64,.b64" style={{ display: "none" }} onChange={(e) => uploadSignedFile(e.target.files?.[0] ?? null)} />
                   <Button size="sm" variant="outline" className="gap-1.5">Upload signed transaction</Button>
                 </label>
+                <div>
+                  <SignWithLedger txId={tx.id} fromAddress={tx.fromWalletAddress ?? tx.network} onComplete={() => { queryClient.invalidateQueries({ queryKey: getListTransactionsQueryKey() }); onClose(); }} />
+                </div>
               </div>
               <p className="text-xs text-muted-foreground">Tip: use the Ledger DMK / Wallet CLI or Speculos to sign the downloaded payload, then upload the signed base64 file here to broadcast.</p>
             </div>

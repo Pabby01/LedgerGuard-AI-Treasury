@@ -29,6 +29,16 @@ wallet-cli sign --message-file transaction-123.unsigned.txt --derivation "m/44'/
 For emulator-based proof, run Speculos and the appropriate Ledger app for Solana. See:
 - https://github.com/LedgerHQ/speculos
 
+Browser (WebHID) signing with Speculos
+- Ensure you run the app in a browser that supports WebHID (Chromium-based).
+- Start Speculos with a WebHID-compatible bridge or run it locally with the correct options. See Speculos docs.
+- In the UI transaction modal, click `Sign with Ledger (WebHID / Speculos)`. The browser will prompt to select the connected device (Speculos).
+- The app uses `@ledgerhq/hw-transport-webhid` + `@ledgerhq/hw-app-solana` to request the Solana app to sign the transaction message. After signing the signed transaction is sent to `/transactions/:id/broadcast` and broadcast.
+
+Notes & troubleshooting
+- If the Ledger device (or Speculos) is not visible in the WebHID chooser, ensure the emulator exposes a HID interface and your browser has permissions.
+- If you prefer a CLI approach, use the `export_unsigned_tx.js` + `sign-and-broadcast.ps1` helpers.
+
 5. Broadcast the signed base64 (PowerShell helper provided):
 
 ```powershell

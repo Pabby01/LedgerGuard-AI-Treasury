@@ -244,6 +244,9 @@ router.get("/transactions/:id/payload", async (req, res): Promise<void> => {
     // Serialize the message (unsigned) so external signer can sign the canonical payload
     const messageBytes = transaction.serializeMessage();
     const unsignedBase64 = Buffer.from(messageBytes).toString("base64");
+    // Also provide the full unsigned transaction serialized (signatures empty)
+    const unsignedTxRaw = transaction.serialize({ requireAllSignatures: false });
+    const unsignedTxBase64 = Buffer.from(unsignedTxRaw).toString("base64");
 
     await db.insert(auditLogsTable).values({
       event: "TRANSACTION_EXPORT_UNSIGNED",
@@ -253,6 +256,7 @@ router.get("/transactions/:id/payload", async (req, res): Promise<void> => {
 
     res.json({
       unsignedTransaction: unsignedBase64,
+      unsignedTransactionSerialized: unsignedTxBase64,
       requiredSigners: [fromPubkey.toBase58()],
       recentBlockhash: blockhash,
     });
