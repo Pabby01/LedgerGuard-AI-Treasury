@@ -7,6 +7,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      buffer: 'buffer/',
       '@workspace/api-client-react': path.resolve(__dirname, './src/mocks/api-client-react.tsx')
     },
   },
@@ -19,6 +20,6 @@ export default defineConfig({
     }
   },
   optimizeDeps: {
-    include: ['@workspace/api-client-react']
+    include: ['@workspace/api-client-react', 'buffer']
   }
 })

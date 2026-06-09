@@ -1,4 +1,5 @@
-import { useGetDashboardStats, useGetRecentActivity, useListTransactions } from "@workspace/api-client-react";
+import { motion } from "framer-motion";
+import { useGetDashboardStats, useGetRecentActivity, useListTransactions } from "@/mocks/api-client-react";
 import { useThemeStore } from "@/store/use-theme-store";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Shield, TrendingDown, TrendingUp, Wallet, AlertTriangle, Clock, Activity } from "lucide-react";
@@ -35,19 +36,21 @@ function StatCard({
   const isDark = theme === "dark";
 
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -6, scale: 1.01 }}
+      transition={{ duration: 0.45, delay: delay / 1000, ease: "easeOut" }}
       className={`
-        rounded-xl p-5 flex flex-col gap-3 border animate-fade-in-up glow-hover transition-all duration-300
+        rounded-2xl p-5 flex flex-col gap-3 border hover-lift
         ${isDark
           ? "glass-card"
           : "bg-white border-border shadow-sm hover:shadow-md"}
       `}
-      style={{ animationDelay: `${delay}ms` }}
     >
       <div className="flex items-center justify-between">
         <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">{label}</span>
-        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isDark ? "bg-primary/15" : "bg-primary/8"}`}
-          style={{ background: isDark ? "rgba(109,40,255,0.15)" : "rgba(109,40,255,0.08)" }}>
+        <div className={`w-10 h-10 rounded-xl flex items-center justify-center border ${isDark ? "bg-white/5 border-white/10" : "bg-primary/8 border-primary/10"}`}>
           <Icon className="w-4 h-4 text-primary" />
         </div>
       </div>
@@ -55,7 +58,7 @@ function StatCard({
         {value}
       </div>
       {sub && <div className="text-xs text-muted-foreground">{sub}</div>}
-    </div>
+    </motion.div>
   );
 }
 
@@ -63,49 +66,61 @@ export default function Dashboard() {
   const { theme } = useThemeStore();
   const isDark = theme === "dark";
 
-  const { data: stats, isLoading: statsLoading } = useGetDashboardStats();
-  const { data: activity, isLoading: actLoading } = useGetRecentActivity({ limit: 8 });
-  const { data: txns, isLoading: txnsLoading } = useListTransactions({ status: "pending", limit: 5 });
+  const { data: statsData, isLoading: statsLoading } = (useGetDashboardStats as any)();
+  const { data: activityData, isLoading: actLoading } = (useGetRecentActivity as any)();
+  const { data: txnsData, isLoading: txnsLoading } = (useListTransactions as any)();
+
+  const stats = statsData as any;
+  const activity = (activityData ?? []) as Array<{ id: string; type: string; description: string; timestamp: string }>;
+  const txns = (txnsData ?? []) as Array<{ id: number; recipient: string; memo?: string | null; amount: number; token: string; riskScore?: number | null; riskLevel?: string | null; status: string }>;
+  const pendingTxns = txns.filter((tx) => tx.status === "pending");
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
 
-      {/* Header */}
-      <div className="animate-fade-in-up">
-        <h1 className={`text-2xl font-bold tracking-tight ${isDark ? "shimmer-text" : "text-foreground"}`}>
-          Treasury Dashboard
-        </h1>
-        <p className="text-sm text-muted-foreground mt-0.5">Real-time overview of your on-chain assets and operations</p>
-      </div>
+      <motion.section
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.55, ease: "easeOut" }}
+        className={`relative overflow-hidden rounded-3xl border ${isDark ? "glass-card" : "bg-white border-border shadow-sm"}`}
+      >
+        <div className="noise-overlay absolute inset-0 opacity-70 pointer-events-none" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(34,211,238,0.18),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(168,85,247,0.18),transparent_30%)] pointer-events-none" />
+        <div className="relative flex flex-col gap-6 px-6 py-6 lg:flex-row lg:items-end lg:justify-between lg:px-8 lg:py-8">
+          <div className="max-w-2xl">
+            <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+              <Shield className="h-3.5 w-3.5" /> Treasury command center
+            </div>
+            <h1 className={`mt-3 text-3xl font-semibold tracking-tight sm:text-4xl ${isDark ? "shimmer-text" : "text-foreground"}`}>
+              Treasury Dashboard
+            </h1>
+            <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
+              Real-time overview of your on-chain assets, approvals, and AI-assisted operations with a more tactile, web3-style control surface.
+            </p>
+          </div>
 
-      {/* Status pills */}
-      <div className="flex items-center gap-2 flex-wrap animate-fade-in-up" style={{ animationDelay: "60ms" }}>
-        <div className={`flex items-center gap-2 text-xs font-medium px-3 py-1.5 rounded-full border
-          ${isDark
-            ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-            : "bg-emerald-50 text-emerald-700 border-emerald-200"}`}>
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-          </span>
-          Network: {statsLoading ? "…" : stats?.network ?? "devnet"}
+          <div className="flex flex-wrap items-center gap-2">
+            <div className={`flex items-center gap-2 text-xs font-medium px-3 py-2 rounded-full border ${isDark ? "bg-emerald-500/10 text-emerald-300 border-emerald-500/20" : "bg-emerald-50 text-emerald-700 border-emerald-200"}`}>
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+              </span>
+              Network: {statsLoading ? "…" : stats?.network ?? "devnet"}
+            </div>
+            <div className={`flex items-center gap-2 text-xs font-medium px-3 py-2 rounded-full border ${isDark ? "bg-indigo-500/10 text-indigo-300 border-indigo-500/20" : "bg-indigo-50 text-indigo-700 border-indigo-200"}`}>
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500" />
+              </span>
+              Ledger: Speculos Connected
+            </div>
+            <div className={`flex items-center gap-2 text-xs font-medium px-3 py-2 rounded-full border ${isDark ? "bg-secondary text-muted-foreground border-border" : "bg-secondary text-muted-foreground border-border"}`}>
+              <Wallet className="w-3 h-3" />
+              {statsLoading ? "…" : stats?.connectedWallets ?? 0} Wallets Connected
+            </div>
+          </div>
         </div>
-        <div className={`flex items-center gap-2 text-xs font-medium px-3 py-1.5 rounded-full border
-          ${isDark
-            ? "bg-indigo-500/10 text-indigo-400 border-indigo-500/20"
-            : "bg-indigo-50 text-indigo-700 border-indigo-200"}`}>
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75" />
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500" />
-          </span>
-          Ledger: Speculos Connected
-        </div>
-        <div className={`flex items-center gap-2 text-xs font-medium px-3 py-1.5 rounded-full border
-          ${isDark ? "bg-secondary text-muted-foreground border-border" : "bg-secondary text-muted-foreground border-border"}`}>
-          <Wallet className="w-3 h-3" />
-          {statsLoading ? "…" : stats?.connectedWallets ?? 0} Wallets Connected
-        </div>
-      </div>
+      </motion.section>
 
       {/* Stat cards */}
       {statsLoading ? (
@@ -159,31 +174,33 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
         {/* Pending approvals */}
-        <div
-          className={`rounded-xl overflow-hidden border animate-fade-in-up ${isDark ? "glass-card" : "bg-white border-border shadow-sm"}`}
-          style={{ animationDelay: "380ms" }}
+        <motion.div
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, delay: 0.15 }}
+          className={`rounded-2xl overflow-hidden border ${isDark ? "glass-card" : "bg-white border-border shadow-sm"}`}
         >
-          <div className={`flex items-center justify-between px-5 py-4 border-b border-border ${isDark ? "" : "bg-secondary/20"}`}>
+          <div className={`flex items-center justify-between px-5 py-4 border-b border-border ${isDark ? "bg-white/5" : "bg-secondary/20"}`}>
             <div className="flex items-center gap-2">
               <Clock className="w-4 h-4 text-amber-400" />
               <h2 className="text-sm font-semibold">Pending Approvals</h2>
-              {!txnsLoading && txns && txns.length > 0 && (
+              {!txnsLoading && pendingTxns.length > 0 && (
                 <span className={`text-xs font-bold px-2 py-0.5 rounded-full border
                   ${isDark
                     ? "bg-amber-500/15 text-amber-400 border-amber-500/30"
                     : "bg-amber-50 text-amber-700 border-amber-200"}`}>
-                  {txns.length}
+                  {pendingTxns.length}
                 </span>
               )}
             </div>
           </div>
           {txnsLoading ? (
             <div className="p-5 space-y-3">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-12" />)}</div>
-          ) : txns?.length === 0 ? (
+          ) : pendingTxns.length === 0 ? (
             <div className="p-8 text-center text-muted-foreground text-sm">No pending approvals</div>
           ) : (
             <div className="divide-y divide-border">
-              {txns?.map((t, i) => (
+              {pendingTxns.map((t, i) => (
                 <div
                   key={t.id}
                   className={`px-5 py-3 flex items-center justify-between transition-colors animate-fade-in-up
@@ -202,14 +219,16 @@ export default function Dashboard() {
               ))}
             </div>
           )}
-        </div>
+        </motion.div>
 
         {/* Recent activity */}
-        <div
-          className={`rounded-xl overflow-hidden border animate-fade-in-up ${isDark ? "glass-card" : "bg-white border-border shadow-sm"}`}
-          style={{ animationDelay: "440ms" }}
+        <motion.div
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, delay: 0.2 }}
+          className={`rounded-2xl overflow-hidden border ${isDark ? "glass-card" : "bg-white border-border shadow-sm"}`}
         >
-          <div className={`flex items-center gap-2 px-5 py-4 border-b border-border ${isDark ? "" : "bg-secondary/20"}`}>
+          <div className={`flex items-center gap-2 px-5 py-4 border-b border-border ${isDark ? "bg-white/5" : "bg-secondary/20"}`}>
             <Activity className="w-4 h-4 text-primary" />
             <h2 className="text-sm font-semibold">Recent Activity</h2>
           </div>
@@ -237,7 +256,7 @@ export default function Dashboard() {
               ))}
             </div>
           )}
-        </div>
+        </motion.div>
       </div>
     </div>
   );

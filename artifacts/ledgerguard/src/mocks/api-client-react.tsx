@@ -1,5 +1,4 @@
 // Mock implementation of @workspace/api-client-react
-import { useQuery, useMutation } from "@tanstack/react-query";
 
 // Auth hooks
 export const useGetMe = () => ({ data: null, isLoading: false, error: null });
@@ -13,18 +12,30 @@ export const useGetDashboardStats = () => ({
     totalVolume: 1000000,
     totalTransactions: 150,
     activePolicies: 5,
-    treasuryHealth: 85
+    treasuryHealth: 85,
+    network: "devnet",
+    connectedWallets: 0,
+    treasuryBalance: 0,
+    monthlyOutflow: 0,
+    monthlyInflow: 0,
+    riskScore: 0,
+    healthScore: 85,
   },
-  isLoading: false
+  isLoading: false,
 });
 
-export const useGetRecentActivity = () => ({
-  data: [],
-  isLoading: false
+export const useGetRecentActivity = (_params?: { limit?: number }) => ({
+  data: [] as Array<{
+    id: string;
+    type: string;
+    description: string;
+    timestamp: string;
+  }>,
+  isLoading: false,
 });
 
 // Transaction hooks
-export const useListTransactions = (_params?: { limit?: number }) => ({
+export const useListTransactions = (_params?: { limit?: number; status?: string }) => ({
   data: [] as Array<{
     id: number;
     signature?: string | null;
