@@ -1,0 +1,31 @@
+# Outline for a GitHub Action job to run Speculos and a headless signing test
+name: Speculos signing test
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  speculos-sign:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Speculos image
+        run: |
+          docker build -t speculos-ci -f ci/speculos.Dockerfile .
+      - name: Run speculos container (background)
+        run: |
+          docker run --rm -d --name speculos-ci speculos-ci
+      - name: Install node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+      - name: Install dependencies
+        run: |
+          pnpm install
+      - name: Run frontend tests
+        run: |
+          pnpm --filter ledgerguard test
+      - name: Stop speculos
+        run: |
+          docker stop speculos-ci || true
