@@ -38,8 +38,22 @@ export default function SignWithLedger({ txId, fromAddress, onComplete }: { txId
       const raw = Buffer.from(serializedBase64, "base64");
       const tx = Transaction.from(raw);
 
-      const TransportWebHID = (await import("@ledgerhq/hw-transport-webhid")).default;
-      const SolanaApp = (await import("@ledgerhq/hw-app-solana")).default;
+      let TransportWebHID: any;
+      let SolanaApp: any;
+      try {
+        const transportModule = "@ledgerhq/" + "hw-transport-webhid";
+        TransportWebHID = (await import(transportModule as string)).default;
+      } catch (err) {
+        throw new Error("@ledgerhq/hw-transport-webhid not installed. Install it or run in an environment with Ledger support.");
+      }
+
+      try {
+        const solanaModule = "@ledgerhq/" + "hw-app-solana";
+        SolanaApp = (await import(solanaModule as string)).default;
+      } catch (err) {
+        // If hw-app-solana is not installed, provide a helpful error rather than crashing.
+        throw new Error("@ledgerhq/hw-app-solana is not installed. To enable Ledger signing, install @ledgerhq/hw-app-solana or use the Speculos emulator as documented.");
+      }
 
       const transport = await TransportWebHID.create();
       const sol = new SolanaApp(transport as any);

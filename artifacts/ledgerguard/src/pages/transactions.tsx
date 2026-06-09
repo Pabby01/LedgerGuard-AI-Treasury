@@ -10,10 +10,8 @@ import { useThemeStore } from "@/store/use-theme-store";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import SignWithLedger from "@/components/ledger/SignWithLedger";
 import { ExternalLink, CheckCircle, XCircle, RefreshCw, Bot } from "lucide-react";
-import dynamic from "next/dynamic";
-
-const SignWithLedger = dynamic(() => import("@/components/ledger/SignWithLedger"), { ssr: false });
 
 type Tx = {
   id: number; signature?: string | null; amount: number; recipient: string;
