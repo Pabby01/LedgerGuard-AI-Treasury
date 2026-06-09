@@ -116,6 +116,19 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   }, [me, setStoreAddress]);
 
   const handleSignIn = async () => {
+    // Defensive checks: connectors/actions may not be ready immediately from provider
+    if (!connectors || !connectors.all || connectors.all.length === 0) {
+      console.warn("Wallet connectors not available", { connectors, wallet, actions });
+      toast.error("No wallet connector found. Install or enable a Solana wallet (Phantom/Backpack/Backpack).");
+      return;
+    }
+
+    if (!actions || typeof actions.connectWallet !== "function") {
+      console.error("Wallet actions unavailable", { actions });
+      toast.error("Wallet actions unavailable. Ensure the wallet provider is loaded.");
+      return;
+    }
+
     if (wallet?.status !== 'connected') {
       const connector = connectors.all[0];
       if (!connector) {
@@ -126,6 +139,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         setIsConnecting(true);
         await actions.connectWallet(connector.id);
       } catch (err) {
+        console.error("connectWallet failed", err);
         toast.error("Failed to connect wallet");
         setIsConnecting(false);
         return;
@@ -137,14 +151,23 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       const { nonce } = await getNonce();
       if (!nonce) throw new Error("Failed to get nonce");
 
-      const address = wallet!.session.account.address.toString();
+      if (!wallet || wallet.status !== 'connected' || !wallet.session) {
+        throw new Error("Wallet not connected after connect step");
+      }
+
+      const address = wallet.session.account.address.toString();
       const message = `Sign in to LedgerGuard\n\nNonce: ${nonce}`;
       
       // Use standard wallet-standard signing
       const messageUint8 = new TextEncoder().encode(message);
-      const { signature } = await (wallet as any).session.wallet.signMessage({
+      const signer = (wallet as any).session?.wallet;
+      if (!signer || typeof signer.signMessage !== 'function') {
+        throw new Error("Connected wallet does not support `signMessage`");
+      }
+
+      const { signature } = await signer.signMessage({
           message: messageUint8,
-          account: wallet!.session.account,
+          account: wallet.session.account,
       });
 
       await signIn({
