@@ -38,7 +38,8 @@ export function resolveRoleForWallet(address: string): SessionRole {
 }
 
 function getRateLimitKey(req: Request) {
-  return req.session?.walletAddress ?? ipKeyGenerator(req.ip);
+  const requestIp = Reflect.get(req, "ip") as string;
+  return req.session?.walletAddress ?? ipKeyGenerator(requestIp);
 }
 
 export const authRateLimiter = rateLimit({
