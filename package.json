@@ -10,6 +10,7 @@
   },
   "private": true,
   "devDependencies": {
+    "@types/node": "^20.8.5",
     "@rollup/rollup-win32-x64-msvc": "^4.61.1",
     "@tailwindcss/oxide-win32-x64-msvc": "^4.3.0",
     "dotenv-cli": "^11.0.0",
