@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { useWallet, useBalance, useTransfer } from "@solana/react-hooks";
+import { useWallet, useBalance, useTransfer, useWalletConnection, useWalletActions } from "@solana/react-hooks";
 import { toAddress } from "@solana/client";
 import { useWalletStore } from "@/store/use-wallet-store";
 import { useThemeStore } from "@/store/use-theme-store";
@@ -96,7 +96,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const { theme, toggle } = useThemeStore();
   const isDark = theme === "dark";
 
-  const { connectors, wallet, actions } = useWallet();
+  const wallet = useWallet();
+  const { connectors, connect, disconnect, status: connectionStatus, currentConnector } = useWalletConnection();
+  const actions = useWalletActions();
   const { data: balance } = useBalance(wallet?.status === 'connected' ? wallet.session.account.address : undefined);
 
   const { data: me, isLoading: meLoading, refetch: refetchMe } = useGetMe();
@@ -144,8 +146,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    if (!actions || typeof actions.connectWallet !== "function") {
-      console.error("Wallet actions unavailable", { actions });
+    if (!connect || typeof connect !== 'function') {
+      console.error("Wallet connect function unavailable", { connect });
       toast.error("Wallet actions not available. Ensure the Solana provider is loaded.");
       return;
     }
@@ -159,9 +161,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       try {
         setIsConnecting(true);
         console.log(`Connecting to wallet: ${connector.id}`);
-        await actions.connectWallet(connector.id);
+        await connect(connector.id, { autoConnect: true });
       } catch (err) {
-        console.error("connectWallet failed", err);
+        console.error("connect failed", err);
         toast.error(`Failed to connect wallet: ${(err as any)?.message || 'Unknown error'}`);
         setIsConnecting(false);
         return;
@@ -213,7 +215,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const handleSignOut = async () => {
     try {
       await signOut();
-      await actions.disconnectWallet();
+      if (disconnect) await disconnect();
       await refetchMe();
       toast.success("Signed out");
     } catch (err) {
