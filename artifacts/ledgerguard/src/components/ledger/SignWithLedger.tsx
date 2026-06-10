@@ -93,7 +93,7 @@ export default function SignWithLedger({ txId, fromAddress, onComplete }: { txId
       const signatureResp: any = await sol.signTransaction(derivationPath, message);
       const sigBuf = toBytes(signatureResp?.signature || signatureResp?.sig || signatureResp);
       if (!sigBuf.length) throw new Error("Failed to obtain signature from Ledger");
-      const signature = sigBuf;
+      const signature = sigBuf as unknown as Parameters<Transaction["addSignature"]>[1];
 
       const pubkey = new PublicKey(fromAddress);
       tx.addSignature(pubkey, signature);
