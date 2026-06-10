@@ -15,7 +15,7 @@ export const useGetMe = (_options?: unknown) => ({
 });
 
 export const useSignIn = () => ({
-  mutateAsync: async (payload?: { data?: { publicKey?: string } }) => {
+  mutateAsync: async (payload?: { data?: { publicKey?: string; message?: string; signature?: string } }) => {
     mockWalletAddress = payload?.data?.publicKey ?? mockWalletAddress;
     return { success: true };
   },
