@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useListAiConversations, useSendAiMessage, useCreateTransaction, getListAiConversationsQueryKey, getListTransactionsQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { useBalance, useWalletSession } from "@solana/react-hooks";
 import { useWalletStore } from "@/store/use-wallet-store";
 import { useThemeStore } from "@/store/use-theme-store";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -82,6 +83,9 @@ export default function AiTreasury() {
   const bottomRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
   const { address } = useWalletStore();
+  const walletSession = useWalletSession();
+  const walletBalance = useBalance(walletSession?.account.address);
+  const treasuryBalance = walletBalance?.lamports == null ? undefined : Number(walletBalance.lamports) / 1e9;
 
   const { data: history, isLoading: histLoading } = useListAiConversations({ limit: 5 });
   const sendMsg = useSendAiMessage();
@@ -113,7 +117,7 @@ export default function AiTreasury() {
     setMessages((prev) => [...prev, { role: "user", content: prompt }]);
 
     sendMsg.mutate(
-      { data: { prompt, walletAddress: address ?? undefined, treasuryBalance: 1247.85 } },
+      { data: { prompt, walletAddress: address ?? undefined, treasuryBalance } },
       {
         onSuccess: (res) => {
           let proposal = res.actionProposal;
