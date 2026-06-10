@@ -113,7 +113,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     console.log("Wallet hook state:", {
       wallet: wallet ? { status: wallet.status, address: wallet.session?.account.address.toString() } : null,
-      connectorsCount: connectors?.all?.length || 0,
+      connectorsCount: connectors?.length || 0,
       actionsAvailable: !!actions,
     });
   }, [wallet, connectors, actions]);
@@ -130,12 +130,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     // Log current state for debugging
     console.log("handleSignIn called with:", { 
       wallet: wallet?.status, 
-      connectorsAvailable: connectors?.all?.length,
+      connectorsAvailable: connectors?.length,
       actionsAvailable: !!actions 
     });
 
     // Defensive checks: connectors/actions may not be ready immediately from provider
-    if (!connectors || !connectors.all || connectors.all.length === 0) {
+    if (!connectors || connectors.length === 0) {
       console.error("Wallet provider not initialized!", { 
         connectors, 
         wallet, 
@@ -153,7 +153,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     }
 
     if (wallet?.status !== 'connected') {
-      const connector = connectors.all[0];
+      const connector = connectors[0];
       if (!connector) {
         toast.error("No wallet connector found");
         return;
