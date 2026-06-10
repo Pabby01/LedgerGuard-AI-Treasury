@@ -29,6 +29,121 @@ const router = Router();
 
 const getRpcUrl = () => process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com";
 
+function toTransactionStatus(signatureInfo: { err: unknown; confirmationStatus?: string | null }) {
+  if (signatureInfo.err) return "failed" as const;
+  if (signatureInfo.confirmationStatus === "confirmed" || signatureInfo.confirmationStatus === "finalized") {
+    return "confirmed" as const;
+  }
+  return "broadcast" as const;
+}
+
+function mapParsedChainTransaction(
+  parsedTransaction: any,
+  signatureInfo: { signature: string; blockTime?: number | null; err: unknown; confirmationStatus?: string | null },
+  walletAddress: string,
+  syntheticId: number,
+) {
+  const instructions = parsedTransaction?.transaction?.message?.instructions ?? [];
+
+  let recipient = walletAddress;
+  let fromWalletAddress = walletAddress;
+  let amount = 0;
+  let token = "SOL";
+  let memo: string | null = null;
+
+  for (const instruction of instructions) {
+    if (!instruction || typeof instruction !== "object" || !("parsed" in instruction)) continue;
+
+    const parsed = (instruction as { parsed?: any; program?: string }).parsed;
+    const program = (instruction as { parsed?: any; program?: string }).program;
+    if (!parsed) continue;
+
+    if (program === "system" && parsed.type === "transfer") {
+      recipient = parsed.info?.destination ?? recipient;
+      fromWalletAddress = parsed.info?.source ?? fromWalletAddress;
+      amount = Number(parsed.info?.lamports ?? 0) / LAMPORTS_PER_SOL;
+      token = "SOL";
+      continue;
+    }
+
+    if (program === "spl-token" && String(parsed.type ?? "").startsWith("transfer")) {
+      recipient = parsed.info?.destination ?? recipient;
+      fromWalletAddress = parsed.info?.source ?? fromWalletAddress;
+      amount = Number(parsed.info?.tokenAmount?.uiAmount ?? parsed.info?.amount ?? 0);
+      token = parsed.info?.mint ?? "SPL";
+      continue;
+    }
+
+    if (program === "spl-memo") {
+      memo = typeof parsed === "string" ? parsed : JSON.stringify(parsed);
+    }
+  }
+
+  const timestamp = signatureInfo.blockTime
+    ? new Date(signatureInfo.blockTime * 1000).toISOString()
+    : new Date().toISOString();
+
+  return {
+    id: syntheticId,
+    signature: signatureInfo.signature,
+    amount: Number.isFinite(amount) ? amount : 0,
+    recipient,
+    token,
+    memo,
+    status: toTransactionStatus(signatureInfo),
+    riskScore: null,
+    riskLevel: null,
+    network: "devnet",
+    fromWalletAddress,
+    aiProposed: false,
+    createdAt: timestamp,
+    updatedAt: timestamp,
+  };
+}
+
+async function getOnChainTransactions(walletAddress: string, limit: number, offset: number) {
+  const connection = new Connection(getRpcUrl(), "confirmed");
+  const address = new PublicKey(walletAddress);
+  const pageSize = Math.min(Math.max(limit + offset, 25), 100);
+  const signatures = await connection.getSignaturesForAddress(address, { limit: pageSize });
+  const pagedSignatures = signatures.slice(offset, offset + limit);
+
+  if (pagedSignatures.length === 0) {
+    return [];
+  }
+
+  const parsedTransactions = await connection.getParsedTransactions(
+    pagedSignatures.map((signature) => signature.signature),
+    { commitment: "confirmed", maxSupportedTransactionVersion: 0 },
+  );
+
+  return pagedSignatures.map((signatureInfo, index) =>
+    mapParsedChainTransaction(
+      parsedTransactions[index],
+      signatureInfo,
+      walletAddress,
+      -(offset + index + 1),
+    ),
+  );
+}
+
+type SerializedTransaction = {
+  id: number;
+  signature: string | null;
+  amount: number;
+  recipient: string;
+  token: string;
+  memo: string | null;
+  status: string;
+  riskScore: number | null;
+  riskLevel: string | null;
+  network: string;
+  fromWalletAddress: string | null;
+  aiProposed?: boolean;
+  createdAt: string;
+  updatedAt?: string;
+};
+
 router.use(requireAuth);
 router.use(writeRateLimiter);
 
@@ -36,15 +151,53 @@ router.get("/transactions", async (req, res): Promise<void> => {
   const query = ListTransactionsQueryParams.safeParse(req.query);
   const limit = query.success ? (query.data.limit ?? 50) : 50;
   const offset = query.success ? (query.data.offset ?? 0) : 0;
+  const statusFilter = query.success ? query.data.status : undefined;
 
   const txns = await db
     .select()
     .from(transactionsTable)
     .orderBy(desc(transactionsTable.createdAt))
-    .limit(limit)
-    .offset(offset);
+    .limit(Math.min(Math.max(limit + offset, 50), 200));
 
-  res.json(ListTransactionsResponse.parse(serializeList(txns)));
+  const dbTransactions: SerializedTransaction[] = txns.map((transaction) => ({
+    ...transaction,
+    signature: transaction.signature ?? null,
+    memo: transaction.memo ?? null,
+    riskScore: transaction.riskScore ?? null,
+    riskLevel: transaction.riskLevel ?? null,
+    fromWalletAddress: transaction.fromWalletAddress ?? null,
+    createdAt: transaction.createdAt.toISOString(),
+    updatedAt: transaction.updatedAt.toISOString(),
+  }));
+  let mergedTransactions: SerializedTransaction[] = dbTransactions;
+
+  if (req.session.walletAddress) {
+    try {
+      const onChainTransactions = await getOnChainTransactions(req.session.walletAddress, limit, offset);
+      const seenSignatures = new Set(
+        dbTransactions
+          .map((transaction) => transaction.signature)
+          .filter((signature): signature is string => Boolean(signature)),
+      );
+
+      mergedTransactions = [
+        ...dbTransactions,
+        ...onChainTransactions.filter((transaction) => !seenSignatures.has(transaction.signature)),
+      ];
+    } catch (err) {
+      req.log.warn({ err, walletAddress: req.session.walletAddress }, "Failed to fetch on-chain transaction history");
+    }
+  }
+
+  const filteredTransactions = statusFilter
+    ? mergedTransactions.filter((transaction) => transaction.status === statusFilter)
+    : mergedTransactions;
+
+  const pagedTransactions = filteredTransactions
+    .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime())
+    .slice(offset, offset + limit);
+
+  res.json(ListTransactionsResponse.parse(pagedTransactions));
 });
 
 router.post("/transactions", async (req, res): Promise<void> => {
