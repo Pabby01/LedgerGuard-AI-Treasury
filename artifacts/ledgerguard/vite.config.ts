@@ -7,8 +7,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
-      buffer: 'buffer/',
-      '@workspace/api-client-react': path.resolve(__dirname, './src/mocks/api-client-react.tsx')
+      buffer: 'buffer/'
     },
   },
   server: {

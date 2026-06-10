@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { useGetDashboardStats, useGetRecentActivity, useListTransactions } from "@/mocks/api-client-react";
+import { useGetDashboardStats, useGetRecentActivity, useListTransactions } from "@workspace/api-client-react";
 import { useThemeStore } from "@/store/use-theme-store";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Shield, TrendingDown, TrendingUp, Wallet, AlertTriangle, Clock, Activity } from "lucide-react";

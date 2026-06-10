@@ -4,7 +4,7 @@ import {
   useGetTransactionRisk,
   useUpdateTransaction,
   getListTransactionsQueryKey,
-} from "@/mocks/api-client-react";
+} from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useThemeStore } from "@/store/use-theme-store";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -75,7 +75,7 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 function TxDetailModal({ tx, open, onClose }: { tx: Tx | null; open: boolean; onClose: () => void }) {
-  const { data: risk } = useGetTransactionRisk();
+  const { data: risk } = useGetTransactionRisk(tx?.id ?? 0);
   const updateTx = useUpdateTransaction() as any;
   const queryClient = useQueryClient();
   const [, setPayloadToken] = useState<string | null>(null);

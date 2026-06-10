@@ -18,8 +18,7 @@
     "noFallthroughCasesInSwitch": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"],
-      "@workspace/api-client-react": ["./src/mocks/api-client-react.tsx"]
+      "@/*": ["./src/*"]
     }
   },
   "include": ["src"],
