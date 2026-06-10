@@ -105,7 +105,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       : "0.000";
 
   const { data: me, refetch: refetchMe } = useGetMe();
-  const nonceQuery = useGetNonce();
+  const nonceQuery = useGetNonce({
+    query: {
+      queryKey: ["/api/auth/nonce"],
+      enabled: false,
+    },
+  });
   const signInMutation = useSignIn();
   const signOutMutation = useSignOut();
 

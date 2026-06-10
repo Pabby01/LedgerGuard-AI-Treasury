@@ -19,8 +19,11 @@ import Settings from "@/pages/settings";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry: 1,
-      staleTime: 30_000,
+      retry: 0,
+      staleTime: 60_000,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+      refetchOnMount: false,
     },
   },
 });
