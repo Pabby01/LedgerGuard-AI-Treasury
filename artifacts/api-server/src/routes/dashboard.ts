@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { desc, gte, sql, eq } from "drizzle-orm";
 import { db, transactionsTable, walletsTable, auditLogsTable } from "@workspace/db";
+import { Connection, PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import {
   GetDashboardStatsResponse,
   GetRecentActivityQueryParams,
@@ -10,9 +11,20 @@ import { requireAuth } from "../middlewares/auth";
 
 const router = Router();
 
+const getRpcUrl = () =>
+  process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com";
+
+async function getLiveTreasuryBalance(walletAddress?: string): Promise<number> {
+  if (!walletAddress) return 0;
+
+  const connection = new Connection(getRpcUrl(), "confirmed");
+  const lamports = await connection.getBalance(new PublicKey(walletAddress));
+  return lamports / LAMPORTS_PER_SOL;
+}
+
 router.use(requireAuth);
 
-router.get("/dashboard/stats", async (_req, res): Promise<void> => {
+router.get("/dashboard/stats", async (req, res): Promise<void> => {
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
@@ -47,16 +59,23 @@ router.get("/dashboard/stats", async (_req, res): Promise<void> => {
 
   const healthScore = Math.max(0, Math.min(100, 100 - avgRisk));
 
+  let treasuryBalance = 0;
+  try {
+    treasuryBalance = await getLiveTreasuryBalance(req.session.walletAddress);
+  } catch (err) {
+    req.log.warn({ err, walletAddress: req.session.walletAddress }, "Failed to fetch live treasury balance");
+  }
+
   res.json(
     GetDashboardStatsResponse.parse({
-      treasuryBalance: 1247.85,
-      portfolioValue: 1247.85,
+      treasuryBalance: Math.round(treasuryBalance * 1000) / 1000,
+      portfolioValue: Math.round(treasuryBalance * 1000) / 1000,
       monthlyOutflow: Math.round(outflow * 100) / 100,
       monthlyInflow: Math.round(inflow * 100) / 100,
       riskScore: avgRisk,
       healthScore,
       pendingCount: Number(pendingCount?.count ?? 0),
-      connectedWallets: Number(walletCount?.count ?? 0),
+      connectedWallets: req.session.walletAddress ? 1 : Number(walletCount?.count ?? 0),
       network: process.env.NEXT_PUBLIC_SOLANA_NETWORK || "devnet",
     })
   );

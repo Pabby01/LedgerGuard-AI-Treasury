@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { gte, desc, sql, eq } from "drizzle-orm";
 import { db, transactionsTable } from "@workspace/db";
+import { Connection, PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import {
   GetSpendingAnalyticsQueryParams,
   GetSpendingAnalyticsResponse,
@@ -11,6 +12,17 @@ import {
 import { requireAuth } from "../middlewares/auth";
 
 const router = Router();
+
+const getRpcUrl = () =>
+  process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com";
+
+async function getLiveTreasuryBalance(walletAddress?: string): Promise<number> {
+  if (!walletAddress) return 0;
+
+  const connection = new Connection(getRpcUrl(), "confirmed");
+  const lamports = await connection.getBalance(new PublicKey(walletAddress));
+  return lamports / LAMPORTS_PER_SOL;
+}
 
 router.use(requireAuth);
 
@@ -82,7 +94,7 @@ router.get("/analytics/spending", async (req, res): Promise<void> => {
   );
 });
 
-router.get("/analytics/treasury-health", async (_req, res): Promise<void> => {
+router.get("/analytics/treasury-health", async (req, res): Promise<void> => {
   const now = new Date();
   const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
@@ -95,7 +107,12 @@ router.get("/analytics/treasury-health", async (_req, res): Promise<void> => {
     .filter((t) => ["broadcast", "confirmed", "signed"].includes(t.status))
     .reduce((s, t) => s + t.amount, 0);
 
-  const treasuryBalance = 1247.85;
+  let treasuryBalance = 0;
+  try {
+    treasuryBalance = await getLiveTreasuryBalance(req.session.walletAddress);
+  } catch (err) {
+    req.log.warn({ err, walletAddress: req.session.walletAddress }, "Failed to fetch live treasury balance");
+  }
   const monthlyBurn = burnRate;
   const runwayMonths = monthlyBurn > 0 ? treasuryBalance / monthlyBurn : 999;
 
