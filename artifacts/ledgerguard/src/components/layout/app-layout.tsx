@@ -97,6 +97,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const { connectors, connect, disconnect, isReady } = useWalletConnection();
   const actions = useWalletActions();
   const balance = useBalance(walletSession?.account.address);
+  const lamports = balance?.lamports;
+  const balanceInSol = lamports == null ? null : Number(lamports) / 1e9;
+  const formattedBalance =
+    balanceInSol != null && Number.isFinite(balanceInSol)
+      ? balanceInSol.toFixed(3)
+      : "0.000";
 
   const { data: me, refetch: refetchMe } = useGetMe();
   const nonceQuery = useGetNonce();
@@ -278,7 +284,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 `}>
                   <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground opacity-70">Balance</span>
                   <span className="text-sm font-mono font-bold text-primary">
-                    {balance ? (Number(balance) / 1e9).toFixed(3) : "0.000"} SOL
+                    {formattedBalance} SOL
                   </span>
                 </div>
                 
