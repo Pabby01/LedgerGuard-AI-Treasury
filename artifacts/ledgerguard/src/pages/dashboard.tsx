@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { useGetDashboardStats, useGetRecentActivity, useListTransactions } from "@workspace/api-client-react";
+import { useWallet } from "@solana/react-hooks";
 import { useThemeStore } from "@/store/use-theme-store";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Shield, TrendingDown, TrendingUp, Wallet, AlertTriangle, Clock, Activity } from "lucide-react";
@@ -65,6 +66,7 @@ function StatCard({
 export default function Dashboard() {
   const { theme } = useThemeStore();
   const isDark = theme === "dark";
+  const wallet = useWallet();
 
   const { data: statsData, isLoading: statsLoading } = (useGetDashboardStats as any)();
   const { data: activityData, isLoading: actLoading } = (useGetRecentActivity as any)();
@@ -112,7 +114,7 @@ export default function Dashboard() {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75" />
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500" />
               </span>
-              Ledger: Speculos Connected
+              Wallet: {wallet?.status === "connected" ? "Connected" : "Disconnected"}
             </div>
             <div className={`flex items-center gap-2 text-xs font-medium px-3 py-2 rounded-full border ${isDark ? "bg-secondary text-muted-foreground border-border" : "bg-secondary text-muted-foreground border-border"}`}>
               <Wallet className="w-3 h-3" />
