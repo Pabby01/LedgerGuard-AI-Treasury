@@ -2,11 +2,16 @@
   "name": "workspace",
   "version": "0.0.0",
   "license": "MIT",
+  "workspaces": [
+    "artifacts/*",
+    "lib/*",
+    "lib/integrations/*",
+    "scripts"
+  ],
   "scripts": {
-    "preinstall-old": "echo skipping pnpm check",
-    "build": "pnpm run typecheck && pnpm -r --if-present run build",
+    "build": "npm run typecheck && npm run build --workspace @workspace/api-server --workspace @workspace/ledgerguard --if-present",
     "typecheck:libs": "tsc --build",
-    "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck"
+    "typecheck": "npm run typecheck:libs && npm run typecheck --workspace @workspace/api-server --workspace @workspace/ledgerguard --workspace @workspace/scripts --if-present"
   },
   "private": true,
   "devDependencies": {

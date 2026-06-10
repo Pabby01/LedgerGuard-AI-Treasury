@@ -22,10 +22,10 @@ jobs:
           node-version: 18
       - name: Install dependencies
         run: |
-          pnpm install
+          npm ci
       - name: Run frontend tests
         run: |
-          pnpm --filter ledgerguard test
+          npm run test --workspace @workspace/ledgerguard
       - name: Stop speculos
         run: |
           docker stop speculos-ci || true

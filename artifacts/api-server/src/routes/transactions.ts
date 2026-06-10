@@ -231,6 +231,7 @@ router.get("/transactions/:id/payload", async (req, res): Promise<void> => {
   }
 
   try {
+    const challenge = issuePayloadChallenge(req.session, txn.id);
     const connection = new Connection(getRpcUrl(), "confirmed");
     const fromPubkey = new PublicKey(txn.fromWalletAddress || "11111111111111111111111111111111");
     const toPubkey = new PublicKey(txn.recipient);
