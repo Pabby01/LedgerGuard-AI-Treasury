@@ -21,7 +21,7 @@ app.use(
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  limit: 100, // Limit each IP to 100 requests per `window`
+  limit: process.env.NODE_ENV === "development" ? 3000 : 300,
   standardHeaders: "draft-7",
   legacyHeaders: false,
 });

@@ -21,7 +21,6 @@ const getRpcUrl = () =>
   process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com";
 
 router.use(requireAuth);
-router.use(writeRateLimiter);
 router.post("/wallets", requireRole("admin"));
 router.delete("/wallets/:id", requireRole("admin"));
 
@@ -30,7 +29,7 @@ router.get("/wallets", async (req, res): Promise<void> => {
   res.json(ListWalletsResponse.parse(serializeList(wallets)));
 });
 
-router.post("/wallets", async (req, res): Promise<void> => {
+router.post("/wallets", writeRateLimiter, async (req, res): Promise<void> => {
   const parsed = ConnectWalletBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -67,7 +66,7 @@ router.post("/wallets", async (req, res): Promise<void> => {
   }
 });
 
-router.delete("/wallets/:id", async (req, res): Promise<void> => {
+router.delete("/wallets/:id", writeRateLimiter, async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const params = DisconnectWalletParams.safeParse({ id: parseInt(raw, 10) });
   if (!params.success) {

@@ -20,7 +20,6 @@ import { logger } from "../lib/logger";
 const router = Router();
 
 router.use(requireAuth);
-router.use(writeRateLimiter);
 router.post("/policies", requireRole("admin"));
 router.patch("/policies/:id", requireRole("admin"));
 router.delete("/policies/:id", requireRole("admin"));
@@ -30,7 +29,7 @@ router.get("/policies", async (_req, res): Promise<void> => {
   res.json(ListPoliciesResponse.parse(serializeList(policies)));
 });
 
-router.post("/policies", async (req, res): Promise<void> => {
+router.post("/policies", writeRateLimiter, async (req, res): Promise<void> => {
   const parsed = CreatePolicyBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -56,7 +55,7 @@ router.post("/policies", async (req, res): Promise<void> => {
   }
 });
 
-router.patch("/policies/:id", async (req, res): Promise<void> => {
+router.patch("/policies/:id", writeRateLimiter, async (req, res): Promise<void> => {
   const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const params = UpdatePolicyParams.safeParse({ id: parseInt(rawId, 10) });
   if (!params.success) {
@@ -100,7 +99,7 @@ router.patch("/policies/:id", async (req, res): Promise<void> => {
   }
 });
 
-router.delete("/policies/:id", async (req, res): Promise<void> => {
+router.delete("/policies/:id", writeRateLimiter, async (req, res): Promise<void> => {
   const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const params = DeletePolicyParams.safeParse({ id: parseInt(rawId, 10) });
   if (!params.success) {

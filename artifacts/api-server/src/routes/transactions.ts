@@ -145,7 +145,6 @@ type SerializedTransaction = {
 };
 
 router.use(requireAuth);
-router.use(writeRateLimiter);
 
 router.get("/transactions", async (req, res): Promise<void> => {
   const query = ListTransactionsQueryParams.safeParse(req.query);
@@ -200,7 +199,7 @@ router.get("/transactions", async (req, res): Promise<void> => {
   res.json(ListTransactionsResponse.parse(pagedTransactions));
 });
 
-router.post("/transactions", async (req, res): Promise<void> => {
+router.post("/transactions", writeRateLimiter, async (req, res): Promise<void> => {
   const parsed = CreateTransactionBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -271,7 +270,7 @@ router.get("/transactions/:id", async (req, res): Promise<void> => {
   res.json(GetTransactionResponse.parse(serializeDates(txn)));
 });
 
-router.patch("/transactions/:id", async (req, res): Promise<void> => {
+router.patch("/transactions/:id", writeRateLimiter, async (req, res): Promise<void> => {
   const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const params = UpdateTransactionParams.safeParse({ id: parseInt(rawId, 10) });
   if (!params.success) {
@@ -307,7 +306,7 @@ router.patch("/transactions/:id", async (req, res): Promise<void> => {
   res.json(UpdateTransactionResponse.parse(serializeDates(txn)));
 });
 
-router.post("/transactions/:id/simulate", async (req, res): Promise<void> => {
+router.post("/transactions/:id/simulate", writeRateLimiter, async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const params = SimulateTransactionParams.safeParse({ id: parseInt(raw, 10) });
   if (!params.success) {
@@ -364,7 +363,7 @@ router.post("/transactions/:id/simulate", async (req, res): Promise<void> => {
 });
 
 // Generate unsigned signable payload for external signing (Ledger / Wallet CLI / DMK)
-router.get("/transactions/:id/payload", async (req, res): Promise<void> => {
+router.get("/transactions/:id/payload", writeRateLimiter, async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const idParam = parseInt(raw, 10);
   if (Number.isNaN(idParam)) {
@@ -425,7 +424,7 @@ router.get("/transactions/:id/payload", async (req, res): Promise<void> => {
   }
 });
 
-router.post("/transactions/:id/broadcast", async (req, res): Promise<void> => {
+router.post("/transactions/:id/broadcast", writeRateLimiter, async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const params = BroadcastTransactionParams.safeParse({ id: parseInt(raw, 10) });
   if (!params.success) {

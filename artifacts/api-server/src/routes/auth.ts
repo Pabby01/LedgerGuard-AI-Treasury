@@ -8,8 +8,6 @@ import { authRateLimiter, resolveRoleForWallet } from "../middlewares/security";
 
 const router = Router();
 
-router.use(authRateLimiter);
-
 // Extend session type for TS
 declare module "express-session" {
   interface SessionData {
@@ -25,7 +23,7 @@ router.get("/auth/nonce", (req, res) => {
   res.json(GetNonceResponse.parse({ nonce }));
 });
 
-router.post("/auth/signin", async (req, res) => {
+router.post("/auth/signin", authRateLimiter, async (req, res) => {
   const parsed = SignInBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
