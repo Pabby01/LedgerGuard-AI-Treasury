@@ -1,16 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { useWallet, useBalance, useTransfer, useWalletConnection, useWalletActions } from "@solana/react-hooks";
-import { toAddress } from "@solana/client";
-import { useWalletStore } from "@/store/use-wallet-store";
+import { useWallet, useBalance, useWalletConnection, useWalletActions, useWalletSession } from "@solana/react-hooks";
 import { useThemeStore } from "@/store/use-theme-store";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useGetMe, useSignIn, useGetNonce, useSignOut } from "@workspace/api-client-react";
 import {
-  LayoutDashboard, MessageSquare, ListTree, PieChart, Shield,
-  ScrollText, Settings, Wallet, Link as LinkIcon, Unlink,
-  Sun, Moon, Menu, X, Bot, LogOut, Loader2,
+  LayoutDashboard, ListTree, PieChart, Shield,
+  ScrollText, Settings, Link as LinkIcon,
+  Sun, Moon, Menu, Bot, LogOut, Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import bs58 from "bs58";
@@ -92,19 +89,19 @@ function SidebarContent({
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
-  const { address: storeAddress, setAddress: setStoreAddress } = useWalletStore();
   const { theme, toggle } = useThemeStore();
   const isDark = theme === "dark";
 
   const wallet = useWallet();
-  const { connectors, connect, disconnect, status: connectionStatus, currentConnector } = useWalletConnection();
+  const walletSession = useWalletSession();
+  const { connectors, connect, disconnect, isReady } = useWalletConnection();
   const actions = useWalletActions();
-  const { data: balance } = useBalance(wallet?.status === 'connected' ? wallet.session.account.address : undefined);
+  const balance = useBalance(walletSession?.account.address);
 
-  const { data: me, isLoading: meLoading, refetch: refetchMe } = useGetMe();
-  const { mutateAsync: getNonce } = useGetNonce();
-  const { mutateAsync: signIn } = useSignIn();
-  const { mutateAsync: signOut } = useSignOut();
+  const { data: me, refetch: refetchMe } = useGetMe();
+  const nonceQuery = useGetNonce();
+  const signInMutation = useSignIn();
+  const signOutMutation = useSignOut();
 
   const [isConnecting, setIsConnecting] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -112,19 +109,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   // Debug wallet provider initialization
   useEffect(() => {
     console.log("Wallet hook state:", {
-      wallet: wallet ? { status: wallet.status, address: wallet.session?.account.address.toString() } : null,
+      wallet: wallet ? { status: wallet.status, address: wallet.status === "connected" ? wallet.session.account.address.toString() : undefined } : null,
       connectorsCount: connectors?.length || 0,
       actionsAvailable: !!actions,
     });
   }, [wallet, connectors, actions]);
-
-  useEffect(() => {
-    if (me?.address) {
-      setStoreAddress(me.address);
-    } else {
-      setStoreAddress(null);
-    }
-  }, [me, setStoreAddress]);
 
   const handleSignIn = async () => {
     // Log current state for debugging
@@ -133,6 +122,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       connectorsAvailable: connectors?.length,
       actionsAvailable: !!actions 
     });
+
+    if (!isReady) {
+      toast.error("Wallet provider is still loading. Try again in a moment.");
+      return;
+    }
 
     // Defensive checks: connectors/actions may not be ready immediately from provider
     if (!connectors || connectors.length === 0) {
@@ -172,29 +166,25 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
     try {
       setIsConnecting(true);
-      const { nonce } = await getNonce();
+      const nonceResult = await nonceQuery.refetch();
+      const nonce = nonceResult.data?.nonce ?? nonceQuery.data?.nonce;
       if (!nonce) throw new Error("Failed to get nonce");
 
-      if (!wallet || wallet.status !== 'connected' || !wallet.session) {
+      if (!walletSession) {
         throw new Error("Wallet not connected after connect step");
       }
 
-      const address = wallet.session.account.address.toString();
+      const address = walletSession.account.address.toString();
       const message = `Sign in to LedgerGuard\n\nNonce: ${nonce}`;
       
-      // Use standard wallet-standard signing
       const messageUint8 = new TextEncoder().encode(message);
-      const signer = (wallet as any).session?.wallet;
-      if (!signer || typeof signer.signMessage !== 'function') {
-        throw new Error("Connected wallet does not support `signMessage`");
+      if (typeof walletSession.signMessage !== "function") {
+        throw new Error("Connected wallet does not support message signing");
       }
 
-      const { signature } = await signer.signMessage({
-          message: messageUint8,
-          account: wallet.session.account,
-      });
+      const signature = await walletSession.signMessage(messageUint8);
 
-      await signIn({
+      await signInMutation.mutateAsync({
         data: {
           message,
           signature: bs58.encode(signature),
@@ -214,7 +204,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   const handleSignOut = async () => {
     try {
-      await signOut();
+      await signOutMutation.mutateAsync();
       if (disconnect) await disconnect();
       await refetchMe();
       toast.success("Signed out");

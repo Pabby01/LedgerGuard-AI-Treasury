@@ -1,10 +1,40 @@
 // Mock implementation of @workspace/api-client-react
 
 // Auth hooks
-export const useGetMe = () => ({ data: null, isLoading: false, error: null });
-export const useSignIn = () => ({ mutateAsync: async () => ({ success: true }), isLoading: false });
-export const useGetNonce = () => ({ data: "mock-nonce-123", isLoading: false });
-export const useSignOut = () => ({ mutateAsync: async () => ({}), isLoading: false });
+let mockWalletAddress: string | null = null;
+const mockNonce = "mock-nonce-123";
+
+export const getGetMeQueryKey = () => ["/api/auth/me"];
+export const getGetNonceQueryKey = () => ["/api/auth/nonce"];
+
+export const useGetMe = (_options?: unknown) => ({
+  data: mockWalletAddress ? { address: mockWalletAddress } : null,
+  isLoading: false,
+  error: null,
+  refetch: async () => ({ data: mockWalletAddress ? { address: mockWalletAddress } : null }),
+});
+
+export const useSignIn = () => ({
+  mutateAsync: async (payload?: { data?: { publicKey?: string } }) => {
+    mockWalletAddress = payload?.data?.publicKey ?? mockWalletAddress;
+    return { success: true };
+  },
+  isLoading: false,
+});
+
+export const useGetNonce = (_options?: unknown) => ({
+  data: { nonce: mockNonce },
+  isLoading: false,
+  refetch: async () => ({ data: { nonce: mockNonce } }),
+});
+
+export const useSignOut = () => ({
+  mutateAsync: async () => {
+    mockWalletAddress = null;
+    return {};
+  },
+  isLoading: false,
+});
 
 // Dashboard hooks
 export const useGetDashboardStats = () => ({
