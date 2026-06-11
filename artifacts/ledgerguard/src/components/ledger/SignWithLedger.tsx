@@ -22,6 +22,25 @@ const toBytes = (value: unknown) => {
   return new Uint8Array();
 };
 
+const toLedgerErrorMessage = (err: unknown) => {
+  const message = String((err as { message?: string })?.message || err || "Unknown Ledger error");
+  const normalized = message.toLowerCase();
+
+  if (normalized.includes("no compatible devices") || normalized.includes("not found")) {
+    return "No Ledger HID device was detected. If using Speculos, ensure it is exposed as a WebHID-compatible device. Otherwise use the Download Unsigned Payload + Upload Signed Payload fallback.";
+  }
+
+  if (normalized.includes("notallowederror") || normalized.includes("permission")) {
+    return "Ledger connection permission was denied. Re-open signing, allow the browser HID prompt, and keep the Solana app open.";
+  }
+
+  if (normalized.includes("solana app")) {
+    return "Open the Solana app on the Ledger device (or Speculos app) and retry signing.";
+  }
+
+  return message;
+};
+
 export default function SignWithLedger({ txId, fromAddress, onComplete }: { txId: number; fromAddress: string; onComplete?: (sig: string) => void }) {
   const [busy, setBusy] = useState(false);
   const [derivationPath, setDerivationPath] = useState("44'/501'/0'/0'");
@@ -117,7 +136,7 @@ export default function SignWithLedger({ txId, fromAddress, onComplete }: { txId
       pendingToast.update({ ...pendingToast, title: 'Success', description: `Broadcasted: ${j.signature}` });
       if (onComplete) onComplete(j.signature);
     } catch (err: any) {
-      pendingToast.update({ ...pendingToast, title: 'Error', description: String(err?.message || err) });
+      pendingToast.update({ ...pendingToast, title: 'Error', description: toLedgerErrorMessage(err) });
       console.error(err);
     } finally {
       setBusy(false);
