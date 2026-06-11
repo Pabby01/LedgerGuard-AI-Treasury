@@ -12,9 +12,31 @@ import { Send, Bot, User, Zap, CheckCircle, XCircle, ArrowDownToLine, Upload } f
 
 type MessageTxFlow = {
   txId: number;
-  status: "created" | "broadcast";
+  status: "created" | "signed" | "broadcast";
   signature?: string;
 };
+
+function TxFlowTimeline({ flow }: { flow: MessageTxFlow }) {
+  const isSigned = flow.status === "signed" || flow.status === "broadcast";
+  const isBroadcast = flow.status === "broadcast";
+
+  const chipClass = (active: boolean) =>
+    `rounded-full border px-2.5 py-1 text-[11px] font-semibold ${
+      active
+        ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-400"
+        : "border-border bg-muted/30 text-muted-foreground"
+    }`;
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <span className={chipClass(true)}>Created</span>
+      <span className="text-muted-foreground">{"->"}</span>
+      <span className={chipClass(isSigned)}>Signed</span>
+      <span className="text-muted-foreground">{"->"}</span>
+      <span className={chipClass(isBroadcast)}>Broadcasted</span>
+    </div>
+  );
+}
 
 const QUICK_PROMPTS = [
   "Transfer 2 SOL to operations wallet",
@@ -95,6 +117,7 @@ function ActionProposalCard({
           <p className="text-xs text-muted-foreground">
             Transaction #{txFlow.txId} created. Sign and broadcast directly here.
           </p>
+          <TxFlowTimeline flow={txFlow} />
           <div className="flex flex-wrap gap-2">
             <Button size="sm" variant="outline" onClick={onDownloadUnsigned} className="gap-1.5 text-xs">
               <ArrowDownToLine className="w-3.5 h-3.5" />
@@ -256,6 +279,20 @@ export default function AiTreasury() {
 
   const handleUploadSigned = async (txId: number, file: File | null, msgIdx: number) => {
     if (!file) return;
+
+    setMessages((prev) =>
+      prev.map((message, index) =>
+        index === msgIdx
+          ? {
+              ...message,
+              txFlow: {
+                txId,
+                status: "signed",
+              },
+            }
+          : message
+      )
+    );
 
     const payloadResponse = await fetch(`/api/transactions/${txId}/payload`);
     if (!payloadResponse.ok) {
