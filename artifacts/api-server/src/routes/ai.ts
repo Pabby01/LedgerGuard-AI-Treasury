@@ -17,7 +17,23 @@ const router = Router();
 router.use(requireAuth);
 router.use(aiRateLimiter);
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const openAiApiKey = process.env.OPENAI_API_KEY;
+const openRouterApiKey = process.env.OPENROUTER_API_KEY;
+
+const aiClient = openAiApiKey
+  ? new OpenAI({ apiKey: openAiApiKey })
+  : openRouterApiKey
+    ? new OpenAI({
+        apiKey: openRouterApiKey,
+        baseURL: "https://openrouter.ai/api/v1",
+        defaultHeaders: {
+          "HTTP-Referer": process.env.OPENROUTER_SITE_URL || "http://localhost:3001",
+          "X-Title": process.env.OPENROUTER_APP_NAME || "LedgerGuard",
+        },
+      })
+    : null;
+
+const aiModel = process.env.AI_MODEL || (openRouterApiKey && !openAiApiKey ? "openai/gpt-4o-mini" : "gpt-4o-mini");
 
 const SYSTEM_PROMPT = `You are the LedgerGuard AI Treasury Assistant — an expert financial advisor for Solana-based organizations.
 
@@ -58,6 +74,13 @@ router.get("/ai/conversations", async (req, res): Promise<void> => {
 });
 
 router.post("/ai/chat", async (req, res): Promise<void> => {
+  if (!aiClient) {
+    res.status(503).json({
+      error: "AI provider is not configured. Set OPENAI_API_KEY or OPENROUTER_API_KEY.",
+    });
+    return;
+  }
+
   const parsed = SendAiMessageBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -71,8 +94,8 @@ router.post("/ai/chat", async (req, res): Promise<void> => {
     : "";
 
   try {
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+    const completion = await aiClient.chat.completions.create({
+      model: aiModel,
       max_tokens: 1024,
       messages: [
         { role: "system", content: SYSTEM_PROMPT + contextMessage },
