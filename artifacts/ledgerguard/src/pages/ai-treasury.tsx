@@ -368,7 +368,10 @@ export default function AiTreasury() {
             </div>
             <div className={`max-w-[75%] ${msg.role === "user" ? "items-end" : "items-start"} flex flex-col`}>
               <div className={`rounded-xl px-4 py-3 text-sm leading-relaxed ${msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-card border border-border text-foreground"}`}>
-                {msg.content.replace(/ACTION_PROPOSAL:\s*\{[\s\S]*?\}/, "").trim()}
+                {msg.content
+                  .replace(/ACTION_PROPOSAL:\s*\{[\s\S]*?\}/m, "")
+                  .replace(/```(?:json)?\s*\{[\s\S]*?\}\s*```/g, "")
+                  .trim()}
               </div>
               {msg.role === "assistant" && msg.actionProposal && !msg.dismissed && (
                 <ActionProposalCard
