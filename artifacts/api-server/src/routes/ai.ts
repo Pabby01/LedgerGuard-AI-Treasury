@@ -195,7 +195,7 @@ router.post("/ai/chat", async (req, res): Promise<void> => {
       SendAiMessageResponse.parse({
         id: conversation.id,
         response,
-        actionProposal: actionProposal ? JSON.stringify(actionProposal) : null,
+        actionProposal,
       })
     );
   } catch (err) {
