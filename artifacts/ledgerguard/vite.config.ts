@@ -19,6 +19,11 @@ export default defineConfig({
     }
   },
   optimizeDeps: {
-    include: ['@workspace/api-client-react', 'buffer']
+    include: [
+      '@workspace/api-client-react',
+      'buffer',
+      '@ledgerhq/hw-transport-webhid',
+      '@ledgerhq/hw-app-solana',
+    ]
   }
 })

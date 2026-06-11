@@ -47,6 +47,12 @@ export default function SignWithLedger({ txId, fromAddress, onComplete }: { txId
     setBusy(true);
     const pendingToast = toastApi.toast({ title: "Signing", description: "Connecting to Ledger/Speculos..." });
     try {
+      if (!(navigator as any).hid) {
+        throw new Error(
+          "WebHID is not available in this browser. Use Chrome/Edge and ensure the site is accessed over localhost or HTTPS."
+        );
+      }
+
       const resp = await fetch(`/api/transactions/${txId}/payload`);
       if (!resp.ok) throw new Error(`Failed to fetch payload: ${resp.statusText}`);
       const payload = await resp.json();
@@ -60,18 +66,15 @@ export default function SignWithLedger({ txId, fromAddress, onComplete }: { txId
       let TransportWebHID: any;
       let SolanaApp: any;
       try {
-        const transportModule = "@ledgerhq/" + "hw-transport-webhid";
-        TransportWebHID = (await import(/* @vite-ignore */ transportModule as string)).default;
+        TransportWebHID = (await import("@ledgerhq/hw-transport-webhid")).default;
       } catch (err) {
-        throw new Error("@ledgerhq/hw-transport-webhid not installed. Install it or run in an environment with Ledger support.");
+        throw new Error("Failed to load Ledger transport. Ensure the app is built with Ledger support.");
       }
 
       try {
-        const solanaModule = "@ledgerhq/" + "hw-app-solana";
-        SolanaApp = (await import(/* @vite-ignore */ solanaModule as string)).default;
+        SolanaApp = (await import("@ledgerhq/hw-app-solana")).default;
       } catch (err) {
-        // If hw-app-solana is not installed, provide a helpful error rather than crashing.
-        throw new Error("@ledgerhq/hw-app-solana is not installed. To enable Ledger signing, install @ledgerhq/hw-app-solana or use the Speculos emulator as documented.");
+        throw new Error("Failed to load Ledger Solana app.");
       }
 
       const transport = await TransportWebHID.create();
