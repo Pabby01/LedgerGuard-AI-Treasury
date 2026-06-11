@@ -7,7 +7,14 @@ import { useThemeStore } from "@/store/use-theme-store";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Bot, User, Zap, CheckCircle, XCircle } from "lucide-react";
+import SignWithLedger from "@/components/ledger/SignWithLedger";
+import { Send, Bot, User, Zap, CheckCircle, XCircle, ArrowDownToLine, Upload } from "lucide-react";
+
+type MessageTxFlow = {
+  txId: number;
+  status: "created" | "broadcast";
+  signature?: string;
+};
 
 const QUICK_PROMPTS = [
   "Transfer 2 SOL to operations wallet",
@@ -17,11 +24,26 @@ const QUICK_PROMPTS = [
   "Schedule vendor payment for 0.5 SOL",
 ];
 
-function ActionProposalCard({ proposal, onApprove, onDismiss, isPending }: {
+function ActionProposalCard({
+  proposal,
+  onApprove,
+  onDismiss,
+  isPending,
+  txFlow,
+  onDownloadUnsigned,
+  onUploadSigned,
+  onLedgerComplete,
+  fromAddress,
+}: {
   proposal: any;
   onApprove: () => void;
   onDismiss: () => void;
   isPending: boolean;
+  txFlow?: MessageTxFlow;
+  onDownloadUnsigned?: () => void;
+  onUploadSigned?: (file: File | null) => void;
+  onLedgerComplete?: (signature: string) => void;
+  fromAddress?: string;
 }) {
   if (!proposal || proposal.action === "analysis") return null;
   const actionColors: Record<string, string> = {
@@ -29,6 +51,8 @@ function ActionProposalCard({ proposal, onApprove, onDismiss, isPending }: {
     payroll: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
     batch_transfer: "bg-purple-500/15 text-purple-400 border-purple-500/30",
   };
+  const uploadInputId = txFlow ? `signed-upload-${txFlow.txId}` : undefined;
+
   return (
     <div className="mt-3 bg-card border border-primary/30 rounded-xl p-4 space-y-3">
       <div className="flex items-center gap-2">
@@ -56,15 +80,55 @@ function ActionProposalCard({ proposal, onApprove, onDismiss, isPending }: {
         </div>
       </div>
       <div className="flex gap-2 pt-1">
-        <Button size="sm" onClick={onApprove} disabled={isPending} className="gap-1.5 text-xs">
+        <Button size="sm" onClick={onApprove} disabled={isPending || !!txFlow} className="gap-1.5 text-xs">
           <CheckCircle className="w-3.5 h-3.5" />
-          {isPending ? "Creating..." : "Approve & Create Transaction"}
+          {isPending ? "Creating..." : txFlow ? "Transaction Created" : "Approve & Create Transaction"}
         </Button>
         <Button size="sm" variant="outline" onClick={onDismiss} disabled={isPending} className="gap-1.5 text-xs">
           <XCircle className="w-3.5 h-3.5" />
           Dismiss
         </Button>
       </div>
+
+      {txFlow && (
+        <div className="mt-2 space-y-2 rounded-lg border border-border bg-secondary/20 p-3">
+          <p className="text-xs text-muted-foreground">
+            Transaction #{txFlow.txId} created. Sign and broadcast directly here.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" variant="outline" onClick={onDownloadUnsigned} className="gap-1.5 text-xs">
+              <ArrowDownToLine className="w-3.5 h-3.5" />
+              Download Unsigned Payload
+            </Button>
+            <input
+              id={uploadInputId}
+              type="file"
+              accept=".txt,.base64,.b64"
+              className="hidden"
+              onChange={(event) => onUploadSigned?.(event.target.files?.[0] ?? null)}
+            />
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1.5 text-xs"
+              onClick={() => uploadInputId && document.getElementById(uploadInputId)?.click()}
+            >
+              <Upload className="w-3.5 h-3.5" />
+              Upload Signed Payload
+            </Button>
+          </div>
+          <SignWithLedger
+            txId={txFlow.txId}
+            fromAddress={fromAddress || "11111111111111111111111111111111"}
+            onComplete={(signature) => onLedgerComplete?.(signature)}
+          />
+          {txFlow.status === "broadcast" && (
+            <p className="text-xs text-emerald-400">
+              Broadcast complete {txFlow.signature ? `(${txFlow.signature.slice(0, 14)}...)` : ""}
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -79,6 +143,7 @@ export default function AiTreasury() {
     actionProposal?: any;
     id?: number;
     dismissed?: boolean;
+    txFlow?: MessageTxFlow;
   }>>([]);
   const bottomRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
@@ -155,11 +220,76 @@ export default function AiTreasury() {
         },
       },
       {
-        onSuccess: () => {
+        onSuccess: (txn: any) => {
           queryClient.invalidateQueries({ queryKey: getListTransactionsQueryKey() });
-          setMessages((prev) => prev.map((m, i) => i === msgIdx ? { ...m, dismissed: true } : m));
+          setMessages((prev) =>
+            prev.map((message, index) =>
+              index === msgIdx
+                ? {
+                    ...message,
+                    txFlow: { txId: txn.id, status: "created" },
+                  }
+                : message
+            )
+          );
         },
       }
+    );
+  };
+
+  const handleDownloadUnsigned = async (txId: number) => {
+    const response = await fetch(`/api/transactions/${txId}/payload`);
+    if (!response.ok) {
+      throw new Error(`Failed to get unsigned payload for transaction ${txId}`);
+    }
+    const payload = await response.json();
+    const blob = new Blob([payload.unsignedTransaction], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `transaction-${txId}.unsigned.txt`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleUploadSigned = async (txId: number, file: File | null, msgIdx: number) => {
+    if (!file) return;
+
+    const payloadResponse = await fetch(`/api/transactions/${txId}/payload`);
+    if (!payloadResponse.ok) {
+      throw new Error(`Failed to get payload token for transaction ${txId}`);
+    }
+    const payload = await payloadResponse.json();
+
+    const signedTransaction = (await file.text()).trim();
+    const broadcastResponse = await fetch(`/api/transactions/${txId}/broadcast`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ signedTransaction, payloadToken: payload.payloadToken }),
+    });
+
+    if (!broadcastResponse.ok) {
+      const message = await broadcastResponse.text();
+      throw new Error(message || `Failed to broadcast transaction ${txId}`);
+    }
+
+    const result = await broadcastResponse.json();
+    queryClient.invalidateQueries({ queryKey: getListTransactionsQueryKey() });
+    setMessages((prev) =>
+      prev.map((message, index) =>
+        index === msgIdx
+          ? {
+              ...message,
+              txFlow: {
+                txId,
+                status: "broadcast",
+                signature: result.signature,
+              },
+            }
+          : message
+      )
     );
   };
 
@@ -209,10 +339,45 @@ export default function AiTreasury() {
                   onApprove={() => handleApprove(msg.actionProposal, idx)}
                   onDismiss={() => setMessages((prev) => prev.map((m, i) => i === idx ? { ...m, dismissed: true } : m))}
                   isPending={createTx.isPending}
+                  txFlow={msg.txFlow}
+                  fromAddress={address ?? undefined}
+                  onDownloadUnsigned={() => {
+                    if (!msg.txFlow) return;
+                    handleDownloadUnsigned(msg.txFlow.txId).catch(() => {
+                      setMessages((prev) => [
+                        ...prev,
+                        { role: "assistant", content: "I could not download the unsigned payload. Please try again." },
+                      ]);
+                    });
+                  }}
+                  onUploadSigned={(file) => {
+                    if (!msg.txFlow) return;
+                    handleUploadSigned(msg.txFlow.txId, file, idx).catch((error) => {
+                      setMessages((prev) => [
+                        ...prev,
+                        { role: "assistant", content: `I could not broadcast that signed payload: ${error.message}` },
+                      ]);
+                    });
+                  }}
+                  onLedgerComplete={(signature) => {
+                    setMessages((prev) =>
+                      prev.map((message, index) =>
+                        index === idx
+                          ? {
+                              ...message,
+                              txFlow: message.txFlow
+                                ? { ...message.txFlow, status: "broadcast", signature }
+                                : undefined,
+                            }
+                          : message
+                      )
+                    );
+                    queryClient.invalidateQueries({ queryKey: getListTransactionsQueryKey() });
+                  }}
                 />
               )}
-              {msg.role === "assistant" && msg.actionProposal && msg.dismissed && (
-                <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1"><CheckCircle className="w-3 h-3 text-emerald-400" /> Transaction created</p>
+              {msg.role === "assistant" && msg.actionProposal && msg.dismissed && !msg.txFlow && (
+                <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1"><CheckCircle className="w-3 h-3 text-emerald-400" /> Action dismissed</p>
               )}
             </div>
           </div>

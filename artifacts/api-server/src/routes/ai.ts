@@ -124,6 +124,22 @@ router.post("/ai/chat", async (req, res): Promise<void> => {
     : "";
 
   try {
+    const recentConversations = await db
+      .select({ prompt: aiConversationsTable.prompt, response: aiConversationsTable.response })
+      .from(aiConversationsTable)
+      .orderBy(desc(aiConversationsTable.createdAt))
+      .limit(6);
+
+    const conversationMessages = recentConversations
+      .reverse()
+      .flatMap((conversation) => {
+        const assistantResponse = conversation.response.replace(/ACTION_PROPOSAL:\s*\{[\s\S]*?\}\s*$/m, "").trim();
+        return [
+          { role: "user" as const, content: conversation.prompt },
+          { role: "assistant" as const, content: assistantResponse || conversation.response },
+        ];
+      });
+
     const primaryClient = primaryProvider === "openrouter" ? openRouterClient : openAiClient;
     const fallbackClient = primaryProvider === "openrouter" ? openAiClient : openRouterClient;
 
@@ -135,6 +151,7 @@ router.post("/ai/chat", async (req, res): Promise<void> => {
         max_tokens: 1024,
         messages: [
           { role: "system", content: SYSTEM_PROMPT + contextMessage },
+          ...conversationMessages,
           { role: "user", content: prompt },
         ],
       });
@@ -155,6 +172,7 @@ router.post("/ai/chat", async (req, res): Promise<void> => {
         max_tokens: 1024,
         messages: [
           { role: "system", content: SYSTEM_PROMPT + contextMessage },
+          ...conversationMessages,
           { role: "user", content: prompt },
         ],
       });
