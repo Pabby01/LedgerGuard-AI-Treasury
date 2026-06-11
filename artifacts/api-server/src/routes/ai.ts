@@ -17,23 +17,53 @@ const router = Router();
 router.use(requireAuth);
 router.use(aiRateLimiter);
 
-const openAiApiKey = process.env.OPENAI_API_KEY;
-const openRouterApiKey = process.env.OPENROUTER_API_KEY;
+function normalizeApiKey(value?: string): string | null {
+  if (!value) return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
 
-const aiClient = openAiApiKey
-  ? new OpenAI({ apiKey: openAiApiKey })
-  : openRouterApiKey
-    ? new OpenAI({
-        apiKey: openRouterApiKey,
-        baseURL: "https://openrouter.ai/api/v1",
-        defaultHeaders: {
-          "HTTP-Referer": process.env.OPENROUTER_SITE_URL || "http://localhost:3001",
-          "X-Title": process.env.OPENROUTER_APP_NAME || "LedgerGuard",
-        },
-      })
-    : null;
+  const placeholderValues = new Set([
+    "your-openai-key",
+    "your-openrouter-key",
+    "sk-xxxx",
+    "sk-your-key-here",
+  ]);
 
-const aiModel = process.env.AI_MODEL || (openRouterApiKey && !openAiApiKey ? "openai/gpt-4o-mini" : "gpt-4o-mini");
+  if (placeholderValues.has(trimmed.toLowerCase())) {
+    return null;
+  }
+
+  return trimmed;
+}
+
+const openAiApiKey = normalizeApiKey(process.env.OPENAI_API_KEY);
+const openRouterApiKey = normalizeApiKey(process.env.OPENROUTER_API_KEY);
+const preferredProvider = (process.env.AI_PROVIDER || "").trim().toLowerCase();
+
+const openAiClient = openAiApiKey ? new OpenAI({ apiKey: openAiApiKey }) : null;
+const openRouterClient = openRouterApiKey
+  ? new OpenAI({
+      apiKey: openRouterApiKey,
+      baseURL: "https://openrouter.ai/api/v1",
+      defaultHeaders: {
+        "HTTP-Referer": process.env.OPENROUTER_SITE_URL || "http://localhost:3001",
+        "X-Title": process.env.OPENROUTER_APP_NAME || "LedgerGuard",
+      },
+    })
+  : null;
+
+const primaryProvider =
+  preferredProvider === "openrouter"
+    ? "openrouter"
+    : preferredProvider === "openai"
+      ? "openai"
+      : openAiClient
+        ? "openai"
+        : "openrouter";
+
+const hasAnyAiProvider = !!openAiClient || !!openRouterClient;
+
+const aiModel = process.env.AI_MODEL || (primaryProvider === "openrouter" ? "openai/gpt-4o-mini" : "gpt-4o-mini");
 
 const SYSTEM_PROMPT = `You are the LedgerGuard AI Treasury Assistant — an expert financial advisor for Solana-based organizations.
 
@@ -74,9 +104,9 @@ router.get("/ai/conversations", async (req, res): Promise<void> => {
 });
 
 router.post("/ai/chat", async (req, res): Promise<void> => {
-  if (!aiClient) {
+  if (!hasAnyAiProvider) {
     res.status(503).json({
-      error: "AI provider is not configured. Set OPENAI_API_KEY or OPENROUTER_API_KEY.",
+      error: "AI provider is not configured. Set a valid OPENAI_API_KEY or OPENROUTER_API_KEY.",
     });
     return;
   }
@@ -94,14 +124,41 @@ router.post("/ai/chat", async (req, res): Promise<void> => {
     : "";
 
   try {
-    const completion = await aiClient.chat.completions.create({
-      model: aiModel,
-      max_tokens: 1024,
-      messages: [
-        { role: "system", content: SYSTEM_PROMPT + contextMessage },
-        { role: "user", content: prompt },
-      ],
-    });
+    const primaryClient = primaryProvider === "openrouter" ? openRouterClient : openAiClient;
+    const fallbackClient = primaryProvider === "openrouter" ? openAiClient : openRouterClient;
+
+    let completion;
+    try {
+      if (!primaryClient) throw new Error("Primary AI provider is unavailable");
+      completion = await primaryClient.chat.completions.create({
+        model: aiModel,
+        max_tokens: 1024,
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT + contextMessage },
+          { role: "user", content: prompt },
+        ],
+      });
+    } catch (err) {
+      const isAuthError =
+        typeof err === "object" &&
+        err !== null &&
+        "status" in err &&
+        (err as { status?: number }).status === 401;
+
+      if (!isAuthError || !fallbackClient) {
+        throw err;
+      }
+
+      req.log.warn({ provider: primaryProvider }, "Primary AI provider auth failed, retrying with fallback provider");
+      completion = await fallbackClient.chat.completions.create({
+        model: aiModel,
+        max_tokens: 1024,
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT + contextMessage },
+          { role: "user", content: prompt },
+        ],
+      });
+    }
 
     const response = completion.choices[0]?.message?.content ?? "I could not process that request.";
 
@@ -142,7 +199,7 @@ router.post("/ai/chat", async (req, res): Promise<void> => {
       })
     );
   } catch (err) {
-    req.log.error({ err }, "OpenAI request failed");
+    req.log.error({ err, provider: primaryProvider, model: aiModel }, "AI provider request failed");
     res.status(502).json({ error: "AI service unavailable" });
   }
 });
