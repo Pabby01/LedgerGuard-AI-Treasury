@@ -1,13 +1,15 @@
 # PowerShell helper (windows)
-# Usage: .\sign-and-broadcast.ps1 -ApiBase http://localhost:3000 -UnsignedFile .\transaction-123.unsigned.txt -SignedFile .\transaction-123.signed.txt -TxId 123
+# Usage: .\sign-and-broadcast.ps1 -ApiBase http://localhost:3000 -SignedFile .\transaction-123.signed.txt -TxId 123 -PayloadToken <token>
+#    or: .\sign-and-broadcast.ps1 -ApiBase http://localhost:3000 -SignedFile .\transaction-123.signed.txt -TxId 123 -PayloadMetaFile .\transaction-123.unsigned.payload.json
 param(
   [string]$ApiBase = "http://localhost:3000",
-  [string]$UnsignedFile,
   [string]$SignedFile,
-  [int]$TxId
+  [int]$TxId,
+  [string]$PayloadToken,
+  [string]$PayloadMetaFile
 )
-if (-not $UnsignedFile -or -not $SignedFile -or -not $TxId) {
-  Write-Host "Usage: .\sign-and-broadcast.ps1 -ApiBase <api> -UnsignedFile <file> -SignedFile <out> -TxId <id>"
+if (-not $SignedFile -or -not $TxId) {
+  Write-Host "Usage: .\sign-and-broadcast.ps1 -ApiBase <api> -SignedFile <file> -TxId <id> [-PayloadToken <token> | -PayloadMetaFile <file>]"
   exit 1
 }
 
@@ -17,16 +19,35 @@ if (-not $UnsignedFile -or -not $SignedFile -or -not $TxId) {
 
 Write-Host "Sign the payload using your Wallet CLI or DMK. Edit this script to match your tool."
 
-# If you have a CLI that outputs base64 signed transaction to stdout, you could pipe it into the SignedFile.
-# For now we just check the SignedFile exists.
 if (-not (Test-Path $SignedFile)) {
   Write-Host "Signed file not found: $SignedFile"
   exit 1
 }
 
+if (-not $PayloadToken -and $PayloadMetaFile) {
+  if (-not (Test-Path $PayloadMetaFile)) {
+    Write-Host "Payload metadata file not found: $PayloadMetaFile"
+    exit 1
+  }
+  try {
+    $meta = Get-Content -Raw -Path $PayloadMetaFile | ConvertFrom-Json
+    if ($meta -and $meta.payloadToken) {
+      $PayloadToken = [string]$meta.payloadToken
+    }
+  } catch {
+    Write-Host "Failed to parse payload metadata file: $PayloadMetaFile"
+    exit 1
+  }
+}
+
+if (-not $PayloadToken) {
+  Write-Host "Missing payload token. Provide -PayloadToken or -PayloadMetaFile generated during payload export."
+  exit 1
+}
+
 # Read signed base64 and POST to broadcast
-$signed = Get-Content -Raw -Path $SignedFile
-$body = @{ signedTransaction = $signed }
+$signed = (Get-Content -Raw -Path $SignedFile).Trim()
+$body = @{ signedTransaction = $signed; payloadToken = $PayloadToken }
 $json = $body | ConvertTo-Json
 
 $resp = Invoke-RestMethod -Method Post -Uri "$ApiBase/transactions/$TxId/broadcast" -Body $json -ContentType 'application/json'

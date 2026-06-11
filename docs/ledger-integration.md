@@ -17,7 +17,9 @@ Quick demo (local)
 node ./scripts/export_unsigned_tx.js http://localhost:3000 123
 ```
 
-That writes `transaction-123.unsigned.txt` containing the base64 unsigned message.
+That writes:
+- `transaction-123.unsigned.txt` (base64 unsigned message)
+- `transaction-123.unsigned.payload.json` (includes `payloadToken` required for broadcast)
 
 4. Use your Ledger Wallet CLI / DMK or Speculos to sign the payload. Example (pseudo):
 
@@ -43,10 +45,10 @@ Notes & troubleshooting
 
 ```powershell
 .
-Scripts\sign-and-broadcast.ps1 -ApiBase http://localhost:3000 -UnsignedFile .\transaction-123.unsigned.txt -SignedFile .\transaction-123.signed.txt -TxId 123
+Scripts\sign-and-broadcast.ps1 -ApiBase http://localhost:3000 -SignedFile .\transaction-123.signed.txt -TxId 123 -PayloadMetaFile .\transaction-123.unsigned.payload.json
 ```
 
-(Or simply POST the signed base64 to `/transactions/123/broadcast` with JSON `{ "signedTransaction": "<base64>" }`.)
+(Or POST to `/transactions/123/broadcast` with JSON `{ "signedTransaction": "<base64>", "payloadToken": "<token>" }`.)
 
 Notes
 - This repo intentionally leaves CLI-specific signing commands as examples because the DMK / Wallet CLI evolves; edit `scripts/sign-and-broadcast.ps1` to match your local CLI.
