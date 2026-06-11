@@ -48,6 +48,14 @@ Output signed base64 file:
 
 - transaction-<TX_ID>.signed.txt
 
+If using Speculos directly from this repo (no WebHID, no physical Ledger), run:
+
+- npm run speculos:sign --workspace @workspace/scripts -- --payload ./transaction-<TX_ID>.unsigned.payload.json --out ./transaction-<TX_ID>.signed.txt --host 127.0.0.1 --apdu-port 40000 --button-port 5001 --auto-approve
+
+Notes:
+- Ensure Speculos is already running with the Solana app and APDU port exposed.
+- `--auto-approve` sends right-button clicks periodically while awaiting signature.
+
 ### 2.3 Broadcast with payload token
 
 Run:

@@ -101,11 +101,20 @@ function TxDetailModal({ tx, open, onClose }: { tx: Tx | null; open: boolean; on
       if (!resp.ok) throw new Error(`Failed to get payload: ${resp.statusText}`);
       const data = await resp.json();
       setPayloadToken(data.payloadToken ?? null);
-      const blob = new Blob([data.unsignedTransaction], { type: "text/plain" });
+      const payloadBundle = {
+        txId: tx.id,
+        unsignedTransaction: data.unsignedTransaction,
+        unsignedTransactionSerialized: data.unsignedTransactionSerialized,
+        requiredSigners: data.requiredSigners,
+        recentBlockhash: data.recentBlockhash,
+        payloadToken: data.payloadToken,
+        payloadExpiresAt: data.payloadExpiresAt,
+      };
+      const blob = new Blob([JSON.stringify(payloadBundle, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `transaction-${tx.id}.unsigned.txt`;
+      a.download = `transaction-${tx.id}.unsigned.payload.json`;
       document.body.appendChild(a);
       a.click();
       a.remove();

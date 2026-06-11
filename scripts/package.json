@@ -5,10 +5,16 @@
   "type": "module",
   "scripts": {
     "hello": "tsx ./src/hello.ts",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "speculos:sign": "node ./speculos_sign_tx.cjs"
   },
   "devDependencies": {
     "@types/node": "^20.8.5",
     "tsx": "^3.12.7"
+  },
+  "dependencies": {
+    "@ledgerhq/hw-app-solana": "^7.10.4",
+    "@ledgerhq/hw-transport-node-speculos": "^6.34.4",
+    "@solana/web3.js": "^1.98.4"
   }
 }

@@ -1,8 +1,6 @@
 #!/usr/bin/env node
 // Simple helper: fetch unsigned payload from API and write to files
-const fs = require('fs');
-const path = require('path');
-const fetch = require('node-fetch');
+import fs from 'node:fs';
 
 if (process.argv.length < 4) {
   console.error('Usage: node export_unsigned_tx.js <API_BASE_URL> <TRANSACTION_ID> [OUTFILE]');

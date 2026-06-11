@@ -266,11 +266,20 @@ export default function AiTreasury() {
       throw new Error(`Failed to get unsigned payload for transaction ${txId}`);
     }
     const payload = await response.json();
-    const blob = new Blob([payload.unsignedTransaction], { type: "text/plain" });
+    const payloadBundle = {
+      txId,
+      unsignedTransaction: payload.unsignedTransaction,
+      unsignedTransactionSerialized: payload.unsignedTransactionSerialized,
+      requiredSigners: payload.requiredSigners,
+      recentBlockhash: payload.recentBlockhash,
+      payloadToken: payload.payloadToken,
+      payloadExpiresAt: payload.payloadExpiresAt,
+    };
+    const blob = new Blob([JSON.stringify(payloadBundle, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `transaction-${txId}.unsigned.txt`;
+    link.download = `transaction-${txId}.unsigned.payload.json`;
     document.body.appendChild(link);
     link.click();
     link.remove();
