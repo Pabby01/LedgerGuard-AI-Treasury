@@ -230,6 +230,16 @@ export default function AiTreasury() {
 
   const handleApprove = (proposal: any, msgIdx: number) => {
     if (!proposal) return;
+    if (!address) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: "Connect your wallet first before creating a transaction. Ledger/Speculos signing requires a real sender address.",
+        },
+      ]);
+      return;
+    }
     createTx.mutate(
       {
         data: {
@@ -238,7 +248,7 @@ export default function AiTreasury() {
           token: proposal.token,
           memo: proposal.reason,
           network: "devnet",
-          fromWalletAddress: address ?? undefined,
+          fromWalletAddress: address,
           aiProposed: true,
         },
       },
