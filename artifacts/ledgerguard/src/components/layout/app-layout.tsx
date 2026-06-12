@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { useWallet, useBalance, useWalletConnection, useWalletActions, useWalletSession } from "@solana/react-hooks";
 import { useThemeStore } from "@/store/use-theme-store";
+import { useWalletStore } from "@/store/use-wallet-store";
 import { Button } from "@/components/ui/button";
 import { useGetMe, useSignIn, useGetNonce, useSignOut } from "@workspace/api-client-react";
 import {
@@ -90,6 +91,7 @@ function SidebarContent({
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const { theme, toggle } = useThemeStore();
+  const { setAddress } = useWalletStore();
   const isDark = theme === "dark";
 
   const wallet = useWallet();
@@ -125,6 +127,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       actionsAvailable: !!actions,
     });
   }, [wallet, connectors, actions]);
+
+  useEffect(() => {
+    const currentAddress = walletSession?.account.address?.toString() ?? null;
+    setAddress(currentAddress);
+  }, [walletSession, setAddress]);
 
   const handleSignIn = async () => {
     // Log current state for debugging

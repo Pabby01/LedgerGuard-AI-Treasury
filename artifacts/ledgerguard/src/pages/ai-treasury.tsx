@@ -170,8 +170,9 @@ export default function AiTreasury() {
   }>>([]);
   const bottomRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
-  const { address } = useWalletStore();
+  const { address: storedAddress } = useWalletStore();
   const walletSession = useWalletSession();
+  const walletAddress = walletSession?.account.address?.toString() ?? storedAddress ?? null;
   const walletBalance = useBalance(walletSession?.account.address);
   const treasuryBalance = walletBalance?.lamports == null ? undefined : Number(walletBalance.lamports) / 1e9;
 
@@ -205,7 +206,7 @@ export default function AiTreasury() {
     setMessages((prev) => [...prev, { role: "user", content: prompt }]);
 
     sendMsg.mutate(
-      { data: { prompt, walletAddress: address ?? undefined, treasuryBalance } },
+      { data: { prompt, walletAddress: walletAddress ?? undefined, treasuryBalance } },
       {
         onSuccess: (res) => {
           let proposal = res.actionProposal;
@@ -230,7 +231,7 @@ export default function AiTreasury() {
 
   const handleApprove = (proposal: any, msgIdx: number) => {
     if (!proposal) return;
-    if (!address) {
+    if (!walletAddress) {
       setMessages((prev) => [
         ...prev,
         {
@@ -248,7 +249,7 @@ export default function AiTreasury() {
           token: proposal.token,
           memo: proposal.reason,
           network: "devnet",
-          fromWalletAddress: address,
+          fromWalletAddress: walletAddress,
           aiProposed: true,
         },
       },
@@ -399,7 +400,7 @@ export default function AiTreasury() {
                   onDismiss={() => setMessages((prev) => prev.map((m, i) => i === idx ? { ...m, dismissed: true } : m))}
                   isPending={createTx.isPending}
                   txFlow={msg.txFlow}
-                  fromAddress={address ?? undefined}
+                  fromAddress={walletAddress ?? undefined}
                   onDownloadUnsigned={() => {
                     if (!msg.txFlow) return;
                     handleDownloadUnsigned(msg.txFlow.txId).catch(() => {
